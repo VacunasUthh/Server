@@ -14,7 +14,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 @Module({
         imports: [
                 MongooseModule.forRoot(
-                        'mongodb+srv://vacunas:W0j3k2szYeMztEFM@clustervaccination.nny0wi6.mongodb.net/',
+                        'mongodb+srv://vacunas:W0j3k2szYeMztEFM@clustervaccination.nny0wi6.mongodb.net/vaccinemanager',
                 ),
                 VaccinesModule,
                 UsersModule,
