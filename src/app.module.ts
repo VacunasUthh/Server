@@ -8,6 +8,7 @@ import { HospitalsModule } from './hospitals/hospitals.module';
 import { AuthModule } from './auth/auth.module';
 import { VaccineMonthModule } from './vaccine-month/vaccine-month.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { EmailsModule } from './emails/emails.module';
 //
 //mongodb://localhost:27017/vaccinemanager
 //mongodb+srv://vacunas:BlmpV4WEQaw1gUxI@clustervaccination.nny0wi6.mongodb.net/vaccinemanager
@@ -24,6 +25,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
                 AuthModule,
                 VaccineMonthModule,
                 CloudinaryModule,
+                EmailsModule,
         ],
 })
 export class AppModule {}
