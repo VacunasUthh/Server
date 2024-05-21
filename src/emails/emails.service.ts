@@ -14,7 +14,7 @@ export class EmailsService {
       secure: true,
       auth: {
         user: 'emailvacunas@gmail.com',
-        pass: 'eipp mzzh yuko iygs',
+        pass: 'jynb wihh sssk iezw',
       },
     });
   }
