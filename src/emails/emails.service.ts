@@ -32,7 +32,7 @@ export class EmailsService {
     const code = this.generateRandomCode(4); // Generar un código de 4 caracteres
 
     const mailOptions = {
-      from: `"Tu Nombre" <${this.email}>`,
+      from: `"Sistema de vacunas" <${this.email}>`,
       to,
       subject: 'Recuperación de contraseña',
       text: `Tu código de recuperación es: ${code}`,
