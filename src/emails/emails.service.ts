@@ -10,11 +10,9 @@ export class EmailsService {
   constructor(private configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
       auth: {
         user: 'emailvacunas@gmail.com',
-        pass: 'jynb wihh sssk iezw',
+        pass: 'eipp mzzh yuko iygs',
       },
     });
   }
