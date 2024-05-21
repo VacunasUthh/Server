@@ -33,7 +33,7 @@ export class EmailsService {
     const code = this.generateRandomCode(4); // Generar un código de 4 caracteres
 
     const mailOptions = {
-      from: `"Tu Nombre" <${this.configService.get<string>('EMAIL_USER')}>`,
+      from: `"Tu Nombre" <emailvacunas@gmail.com>`,
       to,
       subject: 'Recuperación de contraseña',
       text: `Tu código de recuperación es: ${code}`,
