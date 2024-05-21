@@ -5,8 +5,10 @@ import { Transporter } from 'nodemailer';
 @Injectable()
 export class EmailsService {
   private transporter: Transporter;
+  private email: string = 'emailvacunas@gmail.com';
+  private password: string = 'eipp mzzh yuko iygs';
 
-  constructor(private email: 'emailvacunas@gmail.com', private password: 'eipp mzzh yuko iygs') {
+  constructor() {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -30,7 +32,7 @@ export class EmailsService {
     const code = this.generateRandomCode(4); // Generar un código de 4 caracteres
 
     const mailOptions = {
-      from: `"Tu Nombre" <emailvacunas@gmail.com>`,
+      from: `"Tu Nombre" <${this.email}>`,
       to,
       subject: 'Recuperación de contraseña',
       text: `Tu código de recuperación es: ${code}`,
