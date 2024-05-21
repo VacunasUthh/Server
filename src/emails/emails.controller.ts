@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { EmailsService } from './emails.service';
 
 @Controller('emails')
@@ -7,6 +7,10 @@ export class EmailsController {
 
   @Post('send-recovery-code')
   async sendRecoveryCode(@Body('email') email: string) {
-    return await this.emailsService.sendRecoveryCode(email);
+    try {
+      return await this.emailsService.sendRecoveryCode(email);
+    } catch (error) {
+      throw new HttpException('Error al enviar el correo', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
