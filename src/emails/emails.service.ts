@@ -12,7 +12,7 @@ export class EmailsService {
   private password: string = 'eipp mzzh yuko iygs';
   private generatedCodes: Map<string, string> = new Map(); 
 
-  constructor(@InjectModel('User') private readonly userModel: Model<User>) {
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
