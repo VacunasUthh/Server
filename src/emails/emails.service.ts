@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,7 +10,7 @@ export class EmailsService {
   private transporter: Transporter;
   private email: string = 'emailvacunas@gmail.com';
   private password: string = 'eipp mzzh yuko iygs';
-  private generatedCodes: Map<string, string> = new Map(); 
+  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
 
   constructor(@InjectModel(User.name) private userModel: Model<User>) {
     this.transporter = nodemailer.createTransport({
@@ -26,7 +26,7 @@ export class EmailsService {
   }
 
   private generateRandomCode(length: number): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const characters = '0123456789';
     let result = '';
     const charactersLength = characters.length;
     for (let i = 0; i < length; i++) {
@@ -38,12 +38,13 @@ export class EmailsService {
   async sendRecoveryCode(to: string) {
     const user = await this.findOneByEmail(to);
     if (!user) {
-      throw new Error('El correo electrónico no está registrado en nuestra base de datos.');
+      throw new NotFoundException('El correo electrónico no está registrado en nuestra base de datos.');
     }
 
     const code = this.generateRandomCode(4); 
+    const timestamp = Date.now();
 
-    this.generatedCodes.set(to, code); 
+    this.generatedCodes.set(to, { code, timestamp }); 
 
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
@@ -65,16 +66,23 @@ export class EmailsService {
 
   private clearExpiredCodes() {
     const currentTime = Date.now();
-    for (const [email, timestamp] of this.generatedCodes.entries()) {
-      const codeTime = parseInt(timestamp); 
-      if (currentTime - codeTime > 5 * 60 * 1000) { 
+    for (const [email, { code, timestamp }] of this.generatedCodes.entries()) {
+      if (currentTime - timestamp > 5 * 60 * 1000) { 
         this.generatedCodes.delete(email); 
       }
     }
   }
 
+  async validateRecoveryCode(email: string, code: string): Promise<boolean> {
+    const record = this.generatedCodes.get(email);
+    if (record && record.code === code) {
+      this.generatedCodes.delete(email); 
+      return true;
+    }
+    return false;
+  }
+
   async findOneByEmail(email: string) {
     return await this.userModel.findOne({ email });
   }
-  
 }
