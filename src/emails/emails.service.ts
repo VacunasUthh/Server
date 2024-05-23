@@ -38,7 +38,7 @@ export class EmailsService {
   async sendRecoveryCode(to: string) {
     const user = await this.findOneByEmail(to);
     if (!user) {
-      throw new NotFoundException('El correo electrónico no está registrado en nuestra base de datos.');
+      throw new NotFoundException('El correo electrónico no está registrado.');
     }
 
     const code = this.generateRandomCode(4); 
@@ -73,13 +73,13 @@ export class EmailsService {
     }
   }
 
-  async validateRecoveryCode(email: string, code: string): Promise<boolean> {
+  async validateRecoveryCode(email: string, code: string): Promise<{ isValid: boolean, receivedEmail: string, receivedCode: string }> {
     const record = this.generatedCodes.get(email);
-    if (record && record.code === code) {
-      this.generatedCodes.delete(email); 
-      return true;
+    const isValid = record && record.code === code;
+    if (isValid) {
+      this.generatedCodes.delete(email);
     }
-    return false;
+    return { isValid, receivedEmail: email, receivedCode: code };
   }
 
   async findOneByEmail(email: string) {

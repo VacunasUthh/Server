@@ -16,11 +16,11 @@ export class EmailsController {
 
   @Post('validate-code')
   async validateRecoveryCode(@Body() body: { email: string, code: string }) {
-    const isValid = await this.emailsService.validateRecoveryCode(body.email, body.code);
-    if (isValid) {
-      return { success: true };
+    const result = await this.emailsService.validateRecoveryCode(body.email, body.code);
+    if (result.isValid) {
+      return { success: true, email: result.receivedEmail, code: result.receivedCode };
     } else {
-      return { success: false };
+      return { success: false, email: result.receivedEmail, code: result.receivedCode };
     }
   }
 }
