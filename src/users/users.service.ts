@@ -7,7 +7,7 @@ import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
-        constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+        constructor(@InjectModel(User.name) private userModel: Model<User>) { }
 
         async findAll() {
                 return this.userModel.find();
@@ -58,5 +58,15 @@ export class UsersService {
 
         async delete(id: string) {
                 return this.userModel.findOneAndDelete({ _id: id });
+        }
+        
+        async resetPassword(email: string, newPassword: string): Promise<boolean> {
+                const user = await this.findOneByEmail(email);
+                if (!user) {
+                        return false;
+                }
+                user.password = await bcrypt.hash(newPassword, 10);
+                await user.save();
+                return true;
         }
 }

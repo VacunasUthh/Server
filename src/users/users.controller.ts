@@ -5,7 +5,7 @@ import { UpdateUserDto } from '../dto/users/update.users.dto';
 
 @Controller('users')
 export class UsersController {
-        constructor(private userService: UsersService) {}
+        constructor(private userService: UsersService) { }
 
         @Get()
         async findAll() {
@@ -33,5 +33,14 @@ export class UsersController {
                 @Param('id') id: string,
         ) {
                 return this.userService.update(id, updateUser);
+        }
+
+        @Post('reset-password')
+        async resetPassword(@Body() body: { email: string; newPassword: string }) {
+                const success = await this.userService.resetPassword(
+                        body.email,
+                        body.newPassword,
+                );
+                return { success };
         }
 }
