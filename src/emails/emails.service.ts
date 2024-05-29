@@ -9,7 +9,7 @@ import { User } from '../schemas/user.schema';
 export class EmailsService {
   private transporter: Transporter;
   private email: string = 'emailvacunas@gmail.com';
-  private password: string = 'eipp mzzh yuko iygs';
+  private password: string = 'nlee bebk dsnh whke';
   private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
 
   constructor(@InjectModel(User.name) private userModel: Model<User>) {
