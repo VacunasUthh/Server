@@ -4,10 +4,16 @@ import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-        constructor(private readonly authService: AuthService) {}
+        constructor(private readonly authService: AuthService) { }
 
         @Post('login')
         async login(@Body() LoginDto: LoginDto) {
                 return this.authService.login(LoginDto);
+        }
+        
+        @Post('loginWeb')
+        async loginWeb(@Body() body: { email: string, password: string }) {
+                const { email, password } = body;
+                return this.authService.loginWeb(email, password);
         }
 }
