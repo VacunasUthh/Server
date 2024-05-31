@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateUserDto } from '../dto/users/create.users.dto';
@@ -69,4 +69,27 @@ export class UsersService {
                 await user.save();
                 return true;
         }
+
+        async loginWeb(email: string, password: string) {
+                const user = await this.findOneByEmail(
+                    email.toLocaleLowerCase().trim(), // Corregido el acceso a la función dentro del servicio
+                );
+        
+                if (!user) {
+                    throw new UnauthorizedException('Las credenciales no son válidas.');
+                }
+        
+                const isValid = await bcrypt.compare(password.trim(), user.password);
+        
+                if (!isValid) {
+                    throw new UnauthorizedException('Las credenciales no son válidas.');
+                }
+        
+                if (user.typeUser !== 'trabajador') {
+                    throw new ForbiddenException('Acceso denegado para pacientes.');
+                }
+        
+                delete user.password;
+                return user;
+            }
 }

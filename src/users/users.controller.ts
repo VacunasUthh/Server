@@ -43,4 +43,9 @@ export class UsersController {
                 );
                 return { success };
         }
+        @Post('loginWeb')
+    async loginWeb(@Body() body: { email: string, password: string }) {
+        const { email, password } = body;
+        return this.userService.loginWeb(email, password);
+    }
 }
