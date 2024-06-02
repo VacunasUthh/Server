@@ -12,7 +12,7 @@ export class CorsMiddleware implements NestMiddleware {
 
     // Responde con un estado 204 No Content a las solicitudes OPTIONS
     if (req.method === 'OPTIONS') {
-      return res.sendStatus(204);
+      return res.sendStatus(200);
     }
 
     // Pasa la solicitud al siguiente middleware o controlador
