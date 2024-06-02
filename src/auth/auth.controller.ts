@@ -16,4 +16,10 @@ export class AuthController {
                 const { email, password } = body;
                 return this.authService.loginWeb(email, password);
         }
+
+        @Post('message')
+        async sendMessage(@Body() message: { email: string, password: string }) {
+            // Devuelve un mensaje de confirmación
+            return { message: 'Mensaje recibido correctamente' };
+        }
 }
