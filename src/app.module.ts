@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { VaccinesModule } from './vaccines/vaccines.module';
+import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { VaccinesModule } from './vaccines/vaccines.module';
 import { UsersModule } from './users/users.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { ChildrenModule } from './children/children.module';
@@ -9,23 +9,28 @@ import { AuthModule } from './auth/auth.module';
 import { VaccineMonthModule } from './vaccine-month/vaccine-month.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EmailsModule } from './emails/emails.module';
-//
-//mongodb://localhost:27017/vaccinemanager
-//mongodb+srv://vacunas:BlmpV4WEQaw1gUxI@clustervaccination.nny0wi6.mongodb.net/vaccinemanager
+import { CorsMiddleware } from './cors.middleware';
+
 @Module({
-        imports: [
-                MongooseModule.forRoot(
-                        'mongodb+srv://vacunas:W0j3k2szYeMztEFM@clustervaccination.nny0wi6.mongodb.net/vaccinemanager',
-                ),
-                VaccinesModule,
-                UsersModule,
-                CampaignsModule,
-                ChildrenModule,
-                HospitalsModule,
-                AuthModule,
-                VaccineMonthModule,
-                CloudinaryModule,
-                EmailsModule,
-        ],
+  imports: [
+    MongooseModule.forRoot(
+      'mongodb+srv://vacunas:W0j3k2szYeMztEFM@clustervaccination.nny0wi6.mongodb.net/vaccinemanager',
+    ),
+    VaccinesModule,
+    UsersModule,
+    CampaignsModule,
+    ChildrenModule,
+    HospitalsModule,
+    AuthModule,
+    VaccineMonthModule,
+    CloudinaryModule,
+    EmailsModule,
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(CorsMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
