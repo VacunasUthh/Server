@@ -4,6 +4,8 @@ import { Transporter } from 'nodemailer';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../schemas/user.schema';
+import { VaccineMonth } from '../schemas/vaccineMonth.schema';
+import { Children} from '../schemas/children.schema'
 
 @Injectable()
 export class EmailsService {
@@ -12,7 +14,11 @@ export class EmailsService {
   private password: string = 'nlee bebk dsnh whke';
   private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
 
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
+    @InjectModel(Children.name) private childrenModel: Model<Children> // Inyecta el modelo de VaccineMonth
+  ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -84,5 +90,79 @@ export class EmailsService {
 
   async findOneByEmail(email: string) {
     return await this.userModel.findOne({ email });
+  }
+
+
+  async sendNotificationEmail(to: string) {
+    const user = await this.findOneByEmail(to);
+    if (!user) {
+      throw new NotFoundException('El correo electrónico no está registrado.');
+    }
+
+    const children = await this.childrenModel.find({ parentId: user._id }).exec();
+    if (!children || children.length === 0) {
+      throw new NotFoundException('No se encontraron hijos para este usuario.');
+    }
+
+    const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
+
+    const notifications = [];
+
+    children.forEach(child => {
+      const ageInMonths = child.age * 12; // Convertir la edad de años a meses
+      const childVaccines = child.vaccines || []; // Asumiendo que las vacunas del niño están almacenadas en un campo 'vaccines'
+
+      vaccineMonths.forEach(vaccineMonth => {
+        if (ageInMonths >= vaccineMonth.month) {
+          const missingVaccines = vaccineMonth.vaccines.filter(vaccine => !childVaccines.includes(vaccine));
+          if (missingVaccines.length > 0) {
+            notifications.push({
+              childName: child.name,
+              missingVaccines,
+            });
+          }
+        }
+      });
+    });
+
+    if (notifications.length === 0) {
+      console.log('No hay vacunas faltantes para notificar.');
+      return { success: false, message: 'No hay vacunas faltantes para notificar.' };
+    }
+
+    const mailOptions = {
+      from: `"Sistema de vacunas" <${this.email}>`,
+      to,
+      subject: 'Notificación de vacunas faltantes',
+      text: this.buildNotificationText(notifications),
+      html: this.buildNotificationHtml(notifications),
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Correo enviado: %s', info.messageId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error al enviar correo:', error);
+      throw error;
+    }
+  }
+
+  private buildNotificationText(notifications: any[]): string {
+    let text = 'Notificación de vacunas faltantes:\n\n';
+    notifications.forEach(notification => {
+      text += `Hijo: ${notification.childName}\n`;
+      text += `Vacunas faltantes: ${notification.missingVaccines.join(', ')}\n\n`;
+    });
+    return text;
+  }
+
+  private buildNotificationHtml(notifications: any[]): string {
+    let html = '<h1>Notificación de vacunas faltantes:</h1>';
+    notifications.forEach(notification => {
+      html += `<h2>Hijo: ${notification.childName}</h2>`;
+      html += `<p>Vacunas faltantes: ${notification.missingVaccines.join(', ')}</p>`;
+    });
+    return html;
   }
 }

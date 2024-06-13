@@ -23,4 +23,13 @@ export class EmailsController {
       return { success: false, email: result.receivedEmail, code: result.receivedCode };
     }
   }
+
+  @Post('send-notification-email')
+  async sendNotificationEmail(@Body('email') email: string) {
+    try {
+      return await this.emailsService.sendNotificationEmail(email);
+    } catch (error) {
+      throw new HttpException('Error al enviar la notificación de vacunas', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

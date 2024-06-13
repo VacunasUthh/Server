@@ -54,6 +54,9 @@ export class Children {
 
         @Prop()
         dateOfBirth: string;
+
+        @Prop()
+        vaccines: string;
         
         @Prop()
         zipCode: string;
