@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../schemas/user.schema';
 import { VaccineMonth } from '../schemas/vaccineMonth.schema';
+import { Vaccine } from '../schemas/vaccine.schema';
 import { Children} from '../schemas/children.schema'
 
 @Injectable()
@@ -17,7 +18,8 @@ export class EmailsService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
-    @InjectModel(Children.name) private childrenModel: Model<Children> // Inyecta el modelo de VaccineMonth
+    @InjectModel(Children.name) private childrenModel: Model<Children>,
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine> // Inyecta el modelo de VaccineMonth
   ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -105,37 +107,52 @@ export class EmailsService {
     }
 
     const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
+    const notifications = {};
 
-    const notifications = [];
-
-    children.forEach(child => {
+    for (const child of children) {
       const ageInMonths = child.age * 12; // Convertir la edad de años a meses
       const childVaccines = child.vaccines || []; // Asumiendo que las vacunas del niño están almacenadas en un campo 'vaccines'
 
-      vaccineMonths.forEach(vaccineMonth => {
+      for (const vaccineMonth of vaccineMonths) {
         if (ageInMonths >= vaccineMonth.month) {
           const missingVaccines = vaccineMonth.vaccines.filter(vaccine => !childVaccines.includes(vaccine));
           if (missingVaccines.length > 0) {
-            notifications.push({
-              childName: child.name,
-              missingVaccines,
-            });
+            if (!notifications[child.name]) {
+              notifications[child.name] = [];
+            }
+            notifications[child.name].push(...missingVaccines);
           }
         }
-      });
-    });
+      }
+    }
 
-    if (notifications.length === 0) {
+    // Eliminar duplicados
+    for (const childName in notifications) {
+      notifications[childName] = [...new Set(notifications[childName])];
+    }
+
+    if (Object.keys(notifications).length === 0) {
       console.log('No hay vacunas faltantes para notificar.');
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
 
+    // Obtener los nombres de las vacunas
+    const vaccineIds = new Set();
+    for (const childName in notifications) {
+      notifications[childName].forEach(vaccineId => vaccineIds.add(vaccineId));
+    }
+    const vaccines = await this.vaccineModel.find({ _id: { $in: Array.from(vaccineIds) } }).lean().exec();
+    const vaccineMap = vaccines.reduce((map, vaccine) => {
+      map[vaccine._id.toString()] = vaccine.name; // Convertir ObjectId a cadena
+      return map;
+    }, {});
+    
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
       subject: 'Notificación de vacunas faltantes',
-      text: this.buildNotificationText(notifications),
-      html: this.buildNotificationHtml(notifications),
+      text: this.buildNotificationText(notifications, vaccineMap),
+      html: this.buildNotificationHtml(notifications, vaccineMap),
     };
 
     try {
@@ -148,21 +165,24 @@ export class EmailsService {
     }
   }
 
-  private buildNotificationText(notifications: any[]): string {
+  private buildNotificationText(notifications: any, vaccineMap: any): string {
     let text = 'Notificación de vacunas faltantes:\n\n';
-    notifications.forEach(notification => {
-      text += `Hijo: ${notification.childName}\n`;
-      text += `Vacunas faltantes: ${notification.missingVaccines.join(', ')}\n\n`;
-    });
+    for (const childName in notifications) {
+      text += `Hijo: ${childName}\n`;
+      const missingVaccineNames = notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ');
+      text += `Vacunas faltantes: ${missingVaccineNames}\n\n`;
+    }
     return text;
   }
 
-  private buildNotificationHtml(notifications: any[]): string {
+  private buildNotificationHtml(notifications: any, vaccineMap: any): string {
     let html = '<h1>Notificación de vacunas faltantes:</h1>';
-    notifications.forEach(notification => {
-      html += `<h2>Hijo: ${notification.childName}</h2>`;
-      html += `<p>Vacunas faltantes: ${notification.missingVaccines.join(', ')}</p>`;
-    });
+    for (const childName in notifications) {
+      html += `<h2>Hijo: ${childName}</h2>`;
+      const missingVaccineNames = notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ');
+      html += `<p>Vacunas faltantes: ${missingVaccineNames}</p>`;
+    }
     return html;
   }
+
 }
