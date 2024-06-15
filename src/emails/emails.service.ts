@@ -246,7 +246,7 @@ export class EmailsService {
 
       for (const notification of notifications[childName]) {
         const vaccineId = notification.vaccineId;
-        const birthDate = new Date(notification.birthDate);
+        const birthDate = this.parseDateOfBirth(notification.birthDate);
         const vaccineMonth = notification.vaccineMonth;
 
         const ageInDays = this.calculateAgeInDays(birthDate, new Date());
