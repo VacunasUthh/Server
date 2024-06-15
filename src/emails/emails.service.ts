@@ -99,19 +99,19 @@ export class EmailsService {
     if (!user) {
       throw new NotFoundException('El correo electrónico no está registrado.');
     }
-
+  
     const children = await this.childrenModel.find({ parentId: user._id }).exec();
     if (!children || children.length === 0) {
       throw new NotFoundException('No se encontraron hijos para este usuario.');
     }
-
+  
     const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
     const notifications = {};
-
+  
     for (const child of children) {
-      const birthDate = new Date(child.dateOfBirth); 
-      const childVaccines = child.vaccines || []; 
-
+      const birthDate = this.parseDateOfBirth(child.dateOfBirth); // Parsear fecha de nacimiento
+      const childVaccines = child.vaccines || [];
+  
       for (const vaccineMonth of vaccineMonths) {
         const ageInMonths = this.calculateAgeInMonths(birthDate, new Date(), vaccineMonth.month);
         if (ageInMonths >= vaccineMonth.month) {
@@ -129,16 +129,16 @@ export class EmailsService {
         }
       }
     }
-
+  
     for (const childName in notifications) {
       notifications[childName] = [...new Set(notifications[childName])];
     }
-
+  
     if (Object.keys(notifications).length === 0) {
       console.log('No hay vacunas faltantes para notificar.');
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
-
+  
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
@@ -148,16 +148,16 @@ export class EmailsService {
         {
           filename: 'header.jpg',
           path: 'https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476935/zspdwq4pijyzp2bjrcyp.png',
-          cid: 'headerImage' 
+          cid: 'headerImage'
         },
         {
           filename: 'footer.jpg',
           path: 'https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476928/n754w8dlsqmnaokwnylf.png',
-          cid: 'footerImage' 
+          cid: 'footerImage'
         }
       ]
     };
-
+  
     try {
       const info = await this.transporter.sendMail(mailOptions);
       console.log('Correo enviado: %s', info.messageId);
@@ -167,7 +167,12 @@ export class EmailsService {
       throw error;
     }
   }
-
+  
+  private parseDateOfBirth(dateOfBirth: string): Date {
+    const [day, month, year] = dateOfBirth.split('/').map(Number);
+    return new Date(year, month - 1, day); // month - 1 porque los meses en JavaScript van de 0 a 11
+  }
+  
   private calculateAgeInMonths(birthDate: Date, currentDate: Date, month: number): number {
     const diff = currentDate.getMonth() - birthDate.getMonth() + 
       (12 * (currentDate.getFullYear() - birthDate.getFullYear()));
