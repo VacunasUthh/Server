@@ -13,13 +13,13 @@ export class EmailsService {
   private transporter: Transporter;
   private email: string = 'emailvacunas@gmail.com';
   private password: string = 'nlee bebk dsnh whke';
-  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map();
+  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
 
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
-    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine> 
   ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -30,7 +30,7 @@ export class EmailsService {
     });
     setInterval(() => {
       this.clearExpiredCodes();
-    }, 5 * 60 * 1000);
+    }, 5 * 60 * 1000); 
   }
 
   private generateRandomCode(length: number): string {
@@ -49,10 +49,10 @@ export class EmailsService {
       throw new NotFoundException('El correo electrónico no está registrado.');
     }
 
-    const code = this.generateRandomCode(4);
+    const code = this.generateRandomCode(4); 
     const timestamp = Date.now();
 
-    this.generatedCodes.set(to, { code, timestamp });
+    this.generatedCodes.set(to, { code, timestamp }); 
 
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
@@ -75,8 +75,8 @@ export class EmailsService {
   private clearExpiredCodes() {
     const currentTime = Date.now();
     for (const [email, { code, timestamp }] of this.generatedCodes.entries()) {
-      if (currentTime - timestamp > 5 * 60 * 1000) {
-        this.generatedCodes.delete(email);
+      if (currentTime - timestamp > 5 * 60 * 1000) { 
+        this.generatedCodes.delete(email); 
       }
     }
   }
@@ -109,8 +109,8 @@ export class EmailsService {
     const notifications = {};
 
     for (const child of children) {
-      const ageInMonths = child.age * 12; // Convertir la edad de años a meses
-      const childVaccines = child.vaccines || []; // Asumiendo que las vacunas del niño están almacenadas en un campo 'vaccines'
+      const ageInMonths = child.age * 12; 
+      const childVaccines = child.vaccines || []; 
 
       for (const vaccineMonth of vaccineMonths) {
         if (ageInMonths >= vaccineMonth.month) {
@@ -125,7 +125,6 @@ export class EmailsService {
       }
     }
 
-    // Eliminar duplicados
     for (const childName in notifications) {
       notifications[childName] = [...new Set(notifications[childName])];
     }
@@ -135,14 +134,13 @@ export class EmailsService {
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
 
-    // Obtener los nombres de las vacunas
     const vaccineIds = new Set();
     for (const childName in notifications) {
       notifications[childName].forEach(vaccineId => vaccineIds.add(vaccineId));
     }
     const vaccines = await this.vaccineModel.find({ _id: { $in: Array.from(vaccineIds) } }).lean().exec();
     const vaccineMap = vaccines.reduce((map, vaccine) => {
-      map[vaccine._id.toString()] = vaccine.name; // Convertir ObjectId a cadena
+      map[vaccine._id.toString()] = vaccine.name; 
       return map;
     }, {});
 
@@ -150,8 +148,19 @@ export class EmailsService {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
       subject: 'Notificación de vacunas faltantes',
-      text: this.buildNotificationText(notifications, vaccineMap),
       html: this.buildNotificationHtml(notifications, vaccineMap),
+      attachments: [
+        {
+          filename: 'header.jpg',
+          path: 'https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476935/zspdwq4pijyzp2bjrcyp.png',
+          cid: 'headerImage' 
+        },
+        {
+          filename: 'footer.jpg',
+          path: 'https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476928/n754w8dlsqmnaokwnylf.png',
+          cid: 'footerImage' 
+        }
+      ]
     };
 
     try {
@@ -164,96 +173,53 @@ export class EmailsService {
     }
   }
 
-  private buildNotificationText(notifications: any, vaccineMap: any): string {
-    let text = 'Notificación de vacunas faltantes:\n\n';
-    for (const childName in notifications) {
-      text += `Hijo: ${childName}\n`;
-      const missingVaccineNames = notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ');
-      text += `Vacunas faltantes: ${missingVaccineNames}\n\n`;
-    }
-    return text;
-  }
-
   private buildNotificationHtml(notifications: any, vaccineMap: any): string {
-    let html = `
+    return `
+    <!DOCTYPE html>
     <html>
     <head>
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
-        }
-        .container {
-          width: 100%;
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          padding: 20px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
         .header {
-          background-color: #007bff;
-          color: #ffffff;
-          padding: 20px;
           text-align: center;
+          background-color: #007BFF;
+          padding: 20px;
         }
         .header img {
-          max-width: 100px;
-          margin-bottom: 10px;
+          width: 100%;
+          height: auto;
         }
         .content {
           padding: 20px;
         }
-        .content h2 {
-          color: #333333;
-        }
-        .content p {
-          color: #666666;
-        }
         .footer {
           text-align: center;
-          padding: 10px;
-          background-color: #f4f4f4;
-          color: #777777;
-          font-size: 12px;
+          background-color: #f0f0f0;
+          padding: 20px;
         }
-        .footer a {
-          color: #007bff;
-          text-decoration: none;
+        .footer img {
+          width: 100%;
+          height: auto;
         }
       </style>
     </head>
     <body>
-      <div class="container">
-        <div class="header">
-          <img src="https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476935/zspdwq4pijyzp2bjrcyp.png" alt="Sistema de vacunas">
-          <h1>Notificación de vacunas faltantes</h1>
-        </div>
-        <div class="content">
-    `;
-
-    for (const childName in notifications) {
-      const missingVaccineNames = notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ');
-      html += `
-        <h2>Hijo: ${childName}</h2>
-        <p>Vacunas faltantes: ${missingVaccineNames}</p>
-      `;
-    }
-
-    html += `
-    </div>
+      <div class="header">
+        <img src="cid:headerImage" alt="Header Image">
+      </div>
+      <div class="content">
+        <h1>Notificación de vacunas faltantes</h1>
+        ${Object.keys(notifications).map(childName => `
+          <h2>Hijo: ${childName}</h2>
+          <p>Vacunas faltantes: ${notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ')}</p>
+        `).join('')}
+      </div>
       <div class="footer">
         <p>Este es un correo generado automáticamente. Por favor, no responda a este mensaje.</p>
         <p><a href="https://www.example.com">Visite nuestro sitio web</a> para más información.</p>
-        <img src="https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476928/n754w8dlsqmnaokwnylf.png" alt="Logo de la empresa" style="width:100px;height:auto;">
+        <img src="cid:footerImage" alt="Footer Image">
       </div>
-    </div>
     </body>
     </html>
     `;
-
-    return html;
   }
 }
