@@ -185,7 +185,7 @@ export class EmailsService {
           padding: 20px;
         }
         .header img {
-          width: 100%;
+          width: 80%;
           height: auto;
         }
         .content {
@@ -197,7 +197,7 @@ export class EmailsService {
           padding: 20px;
         }
         .footer img {
-          width: 100%;
+          width: 80%;
           height: auto;
         }
       </style>
