@@ -109,17 +109,22 @@ export class EmailsService {
     const notifications = {};
 
     for (const child of children) {
-      const ageInMonths = child.age * 12; 
+      const birthDate = new Date(child.dateOfBirth); 
       const childVaccines = child.vaccines || []; 
 
       for (const vaccineMonth of vaccineMonths) {
+        const ageInMonths = this.calculateAgeInMonths(birthDate, new Date(), vaccineMonth.month);
         if (ageInMonths >= vaccineMonth.month) {
           const missingVaccines = vaccineMonth.vaccines.filter(vaccine => !childVaccines.includes(vaccine));
           if (missingVaccines.length > 0) {
             if (!notifications[child.name]) {
               notifications[child.name] = [];
             }
-            notifications[child.name].push(...missingVaccines);
+            notifications[child.name].push(...missingVaccines.map(vaccineId => ({
+              vaccineId,
+              birthDate,
+              vaccineMonth: vaccineMonth.month
+            })));
           }
         }
       }
@@ -134,21 +139,11 @@ export class EmailsService {
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
 
-    const vaccineIds = new Set();
-    for (const childName in notifications) {
-      notifications[childName].forEach(vaccineId => vaccineIds.add(vaccineId));
-    }
-    const vaccines = await this.vaccineModel.find({ _id: { $in: Array.from(vaccineIds) } }).lean().exec();
-    const vaccineMap = vaccines.reduce((map, vaccine) => {
-      map[vaccine._id.toString()] = vaccine.name; 
-      return map;
-    }, {});
-
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
       subject: 'Notificación de vacunas faltantes',
-      html: this.buildNotificationHtml(notifications, vaccineMap),
+      html: await this.buildNotificationHtml(notifications),
       attachments: [
         {
           filename: 'header.jpg',
@@ -173,53 +168,109 @@ export class EmailsService {
     }
   }
 
-  private buildNotificationHtml(notifications: any, vaccineMap: any): string {
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        .header {
-          text-align: center;
-          background-color: #007BFF;
-          padding: 20px;
-        }
-        .header img {
-          width: 80%;
-          height: auto;
-        }
-        .content {
-          padding: 20px;
-        }
-        .footer {
-          text-align: center;
-          background-color: #f0f0f0;
-          padding: 20px;
-        }
-        .footer img {
-          width: 80%;
-          height: auto;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <img src="cid:headerImage" alt="Header Image">
-      </div>
-      <div class="content">
-        <h1>Notificación de vacunas faltantes</h1>
-        ${Object.keys(notifications).map(childName => `
-          <h2>Hijo: ${childName}</h2>
-          <p>Vacunas faltantes: ${notifications[childName].map(vaccineId => vaccineMap[vaccineId]).join(', ')}</p>
-        `).join('')}
-      </div>
-      <div class="footer">
-        <p>Este es un correo generado automáticamente. Por favor, no responda a este mensaje.</p>
-        <p><a href="https://www.example.com">Visite nuestro sitio web</a> para más información.</p>
-        <img src="cid:footerImage" alt="Footer Image">
-      </div>
-    </body>
-    </html>
+  private calculateAgeInMonths(birthDate: Date, currentDate: Date, month: number): number {
+    const diff = currentDate.getMonth() - birthDate.getMonth() + 
+      (12 * (currentDate.getFullYear() - birthDate.getFullYear()));
+    return diff + 1;
+  }
+
+  private calculateAgeInDays(birthDate: Date, currentDate: Date): number {
+    const diff = currentDate.getTime() - birthDate.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+
+  private async buildNotificationHtml(notifications: any): Promise<string> {
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .header {
+            text-align: center;
+            background-color: #007BFF;
+            padding: 20px;
+          }
+          .header img {
+            width: 80%;
+            height: auto;
+          }
+          .content {
+            padding: 20px;
+          }
+          .footer {
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+          }
+          .footer img {
+            width: 80%;
+            height: auto;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="cid:headerImage" alt="Header Image">
+        </div>
+        <div class="content">
+          <h1>Notificación de vacunas faltantes</h1>
     `;
+
+    for (const childName in notifications) {
+      html += `
+        <h2>Hijo: ${childName}</h2>
+        <table>
+          <tr>
+            <th>Vacuna</th>
+            <th>Días de retraso</th>
+          </tr>
+      `;
+
+      for (const notification of notifications[childName]) {
+        const vaccineId = notification.vaccineId;
+        const birthDate = new Date(notification.birthDate);
+        const vaccineMonth = notification.vaccineMonth;
+
+        const ageInDays = this.calculateAgeInDays(birthDate, new Date());
+        const vaccineMonthDays = vaccineMonth * 30; // Convertimos meses a días
+        const daysDelay = ageInDays - vaccineMonthDays;
+
+        const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
+        const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
+
+        html += `
+          <tr>
+            <td>${vaccineName}</td>
+            <td>${daysDelay}</td>
+          </tr>
+        `;
+      }
+
+      html += `</table>`;
+    }
+
+    html += `
+        </div>
+        <div class="footer">
+          <img src="cid:footerImage" alt="Footer Image">
+        </div>
+      </body>
+      </html>
+    `;
+
+    return html;
   }
 }
