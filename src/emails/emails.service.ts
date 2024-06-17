@@ -99,51 +99,67 @@ export class EmailsService {
     if (!user) {
       throw new NotFoundException('El correo electrónico no está registrado.');
     }
-  
+
     const children = await this.childrenModel.find({ parentId: user._id }).exec();
     if (!children || children.length === 0) {
       throw new NotFoundException('No se encontraron hijos para este usuario.');
     }
-  
+
     const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
     const notifications = {};
-  
+    const upcomingVaccinations = {};
+
     for (const child of children) {
-      const birthDate = this.parseDateOfBirth(child.dateOfBirth); // Parsear fecha de nacimiento
+      const birthDate = this.parseDateOfBirth(child.dateOfBirth);
       const childVaccines = child.vaccines || [];
-  
+
       for (const vaccineMonth of vaccineMonths) {
-        const ageInMonths = this.calculateAgeInMonths(birthDate, new Date(), vaccineMonth.month);
-        if (ageInMonths >= vaccineMonth.month) {
-          const missingVaccines = vaccineMonth.vaccines.filter(vaccine => !childVaccines.includes(vaccine));
-          if (missingVaccines.length > 0) {
+        const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
+        const currentDate = new Date();
+
+        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId));
+
+        if (missingVaccines.length > 0) {
+          if (currentDate > expectedVaccineDate) {
             if (!notifications[child.name]) {
               notifications[child.name] = [];
             }
             notifications[child.name].push(...missingVaccines.map(vaccineId => ({
               vaccineId,
-              birthDate,
-              vaccineMonth: vaccineMonth.month
+              expectedVaccineDate,
+              delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate)
+            })));
+          } else {
+            if (!upcomingVaccinations[child.name]) {
+              upcomingVaccinations[child.name] = [];
+            }
+            upcomingVaccinations[child.name].push(...missingVaccines.map(vaccineId => ({
+              vaccineId,
+              expectedVaccineDate
             })));
           }
         }
       }
     }
-  
+
     for (const childName in notifications) {
       notifications[childName] = [...new Set(notifications[childName])];
     }
-  
-    if (Object.keys(notifications).length === 0) {
+    
+    for (const childName in upcomingVaccinations) {
+      upcomingVaccinations[childName] = [...new Set(upcomingVaccinations[childName])];
+    }
+
+    if (Object.keys(notifications).length === 0 && Object.keys(upcomingVaccinations).length === 0) {
       console.log('No hay vacunas faltantes para notificar.');
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
-  
+
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
-      subject: 'Notificación de vacunas faltantes',
-      html: await this.buildNotificationHtml(notifications),
+      subject: 'Notificación de vacunas faltantes y próximas',
+      html: await this.buildNotificationHtml(notifications, upcomingVaccinations),
       attachments: [
         {
           filename: 'header.jpg',
@@ -157,7 +173,7 @@ export class EmailsService {
         }
       ]
     };
-  
+
     try {
       const info = await this.transporter.sendMail(mailOptions);
       console.log('Correo enviado: %s', info.messageId);
@@ -167,24 +183,24 @@ export class EmailsService {
       throw error;
     }
   }
-  
+
   private parseDateOfBirth(dateOfBirth: string): Date {
     const [day, month, year] = dateOfBirth.split('/').map(Number);
     return new Date(year, month - 1, day); // month - 1 porque los meses en JavaScript van de 0 a 11
   }
-  
-  private calculateAgeInMonths(birthDate: Date, currentDate: Date, month: number): number {
-    const diff = currentDate.getMonth() - birthDate.getMonth() + 
-      (12 * (currentDate.getFullYear() - birthDate.getFullYear()));
-    return diff + 1;
+
+  private calculateExpectedVaccineDate(birthDate: Date, months: number): Date {
+    const expectedDate = new Date(birthDate);
+    expectedDate.setMonth(expectedDate.getMonth() + months);
+    return expectedDate;
   }
 
-  private calculateAgeInDays(birthDate: Date, currentDate: Date): number {
-    const diff = currentDate.getTime() - birthDate.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  private calculateDaysDifference(startDate: Date, endDate: Date): number {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  private async buildNotificationHtml(notifications: any): Promise<string> {
+  private async buildNotificationHtml(notifications: any, upcomingVaccinations: any): Promise<string> {
     let html = `
       <!DOCTYPE html>
       <html>
@@ -231,7 +247,7 @@ export class EmailsService {
           <img src="cid:headerImage" alt="Header Image">
         </div>
         <div class="content">
-          <h1>Notificación de vacunas faltantes</h1>
+          <h1>Notificación de vacunas faltantes y próximas</h1>
     `;
 
     for (const childName in notifications) {
@@ -240,18 +256,15 @@ export class EmailsService {
         <table>
           <tr>
             <th>Vacuna</th>
+            <th>Fecha esperada</th>
             <th>Días de retraso</th>
           </tr>
       `;
 
       for (const notification of notifications[childName]) {
         const vaccineId = notification.vaccineId;
-        const birthDate = new Date(notification.birthDate);
-        const vaccineMonth = notification.vaccineMonth;
-
-        const ageInDays = this.calculateAgeInDays(birthDate, new Date());
-        const vaccineMonthDays = vaccineMonth * 30; // Convertimos meses a días
-        const daysDelay = ageInDays - vaccineMonthDays;
+        const expectedVaccineDate = notification.expectedVaccineDate.toLocaleDateString('es-ES');
+        const delayDays = notification.delayDays;
 
         const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
         const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
@@ -259,12 +272,43 @@ export class EmailsService {
         html += `
           <tr>
             <td>${vaccineName}</td>
-            <td>${daysDelay}</td>
+            <td>${expectedVaccineDate}</td>
+            <td>${delayDays}</td>
           </tr>
         `;
       }
 
       html += `</table>`;
+    }
+
+    if (Object.keys(upcomingVaccinations).length > 0) {
+      for (const childName in upcomingVaccinations) {
+        html += `
+          <h2>Hijo: ${childName} (Vacunas próximas)</h2>
+          <table>
+            <tr>
+              <th>Vacuna</th>
+              <th>Fecha esperada</th>
+            </tr>
+        `;
+
+        for (const vaccination of upcomingVaccinations[childName]) {
+          const vaccineId = vaccination.vaccineId;
+          const expectedVaccineDate = vaccination.expectedVaccineDate.toLocaleDateString('es-ES');
+
+          const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
+          const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
+
+          html += `
+            <tr>
+              <td>${vaccineName}</td>
+              <td>${expectedVaccineDate}</td>
+            </tr>
+          `;
+        }
+
+        html += `</table>`;
+      }
     }
 
     html += `
