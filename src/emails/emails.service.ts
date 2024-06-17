@@ -202,75 +202,122 @@ export class EmailsService {
 
   private async buildNotificationHtml(notifications: any, upcomingVaccinations: any): Promise<string> {
     let html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        .header { text-align: center; background-color: #007BFF; padding: 20px; }
-        .header img { width: 80%; height: auto; }
-        .content { padding: 20px; }
-        .footer { text-align: center; background-color: #f0f0f0; padding: 20px; }
-        .footer img { width: 80%; height: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
-        th { background-color: #f2f2f2; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <img src="cid:headerImage" alt="Header Image">
-      </div>
-      <div class="content">
-        <h1>Notificación de vacunas faltantes y próximas</h1>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .header {
+            text-align: center;
+            background-color: #007BFF;
+            padding: 20px;
+          }
+          .header img {
+            width: 80%;
+            height: auto;
+          }
+          .content {
+            padding: 20px;
+          }
+          .footer {
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+          }
+          .footer img {
+            width: 80%;
+            height: auto;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="cid:headerImage" alt="Header Image">
+        </div>
+        <div class="content">
+          <h1>Notificación de vacunas faltantes y próximas</h1>
     `;
 
     for (const childName in notifications) {
-      html += `<h2>Hijo: ${childName} (Vacunas retrasadas)</h2>
-      <table>
-        <tr>
-          <th>Vacuna</th>
-          <th>Fecha esperada</th>
-          <th>Días de retraso</th>
-        </tr>`;
-      
-      for (const vaccine of notifications[childName]) {
+      html += `
+        <h2>Hijo: ${childName}</h2>
+        <table>
+          <tr>
+            <th>Vacuna</th>
+            <th>Fecha esperada</th>
+            <th>Días de retraso</th>
+          </tr>
+      `;
+
+      for (const notification of notifications[childName]) {
+        const vaccineId = notification.vaccineId;
+        const expectedVaccineDate = notification.expectedVaccineDate.toLocaleDateString('es-ES');
+        const delayDays = notification.delayDays;
+
+        const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
+        const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
+
         html += `
-        <tr>
-          <td>${vaccine.vaccineId}</td>
-          <td>${vaccine.expectedVaccineDate.toLocaleDateString()}</td>
-          <td>${vaccine.delayDays}</td>
-        </tr>`;
+          <tr>
+            <td>${vaccineName}</td>
+            <td>${expectedVaccineDate}</td>
+            <td>${delayDays}</td>
+          </tr>
+        `;
       }
 
       html += `</table>`;
     }
 
-    for (const childName in upcomingVaccinations) {
-      html += `<h2>Hijo: ${childName} (Vacunas próximas)</h2>
-      <table>
-        <tr>
-          <th>Vacuna</th>
-          <th>Fecha esperada</th>
-        </tr>`;
-      
-      for (const vaccine of upcomingVaccinations[childName]) {
+    if (Object.keys(upcomingVaccinations).length > 0) {
+      for (const childName in upcomingVaccinations) {
         html += `
-        <tr>
-          <td>${vaccine.vaccineId}</td>
-          <td>${vaccine.expectedVaccineDate.toLocaleDateString()}</td>
-        </tr>`;
-      }
+          <h2>Hijo: ${childName} (Vacunas próximas)</h2>
+          <table>
+            <tr>
+              <th>Vacuna</th>
+              <th>Fecha esperada</th>
+            </tr>
+        `;
 
-      html += `</table>`;
+        for (const vaccination of upcomingVaccinations[childName]) {
+          const vaccineId = vaccination.vaccineId;
+          const expectedVaccineDate = vaccination.expectedVaccineDate.toLocaleDateString('es-ES');
+
+          const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
+          const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
+
+          html += `
+            <tr>
+              <td>${vaccineName}</td>
+              <td>${expectedVaccineDate}</td>
+            </tr>
+          `;
+        }
+
+        html += `</table>`;
+      }
     }
 
     html += `
-      </div>
-      <div class="footer">
-        <img src="cid:footerImage" alt="Footer Image">
-      </div>
-    </body>
-    </html>
+        </div>
+        <div class="footer">
+          <img src="cid:footerImage" alt="Footer Image">
+        </div>
+      </body>
+      </html>
     `;
 
     return html;
