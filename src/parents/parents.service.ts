@@ -12,9 +12,8 @@ export class ParentsService {
   ) {}
 
   async findAllWithChildren(): Promise<any> {
-    const parents = await this.userModel.find().exec(); // Obtener todos los padres
+    const parents = await this.userModel.find().exec(); 
 
-    // Iterar sobre los padres y buscar a sus hijos
     const parentsWithChildren = await Promise.all(parents.map(async parent => {
       const children = await this.childrenModel.find({ parentId: parent._id }).exec(); // Buscar hijos del padre actual
       return {
