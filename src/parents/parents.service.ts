@@ -23,10 +23,18 @@ export class ParentsService {
       },
       {
         $project: {
-          name: 1,
-          lastName: 1,
-          'children.name': 1,
-          'children.lastName': 1,
+          parentId: '$_id',
+          parentName: { $concat: ['$name', ' ', '$lastName'] },
+          children: {
+            $map: {
+              input: '$children',
+              as: 'child',
+              in: {
+                childId: '$$child._id',
+                childName: { $concat: ['$$child.name', ' ', '$$child.lastName'] },
+              },
+            },
+          },
         },
       },
     ]).exec();

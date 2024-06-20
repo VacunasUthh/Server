@@ -6,13 +6,8 @@ export class ParentsController {
   constructor(private readonly parentsService: ParentsService) {}
 
   @Get()
-  async findAllWithChildren() {
-    const parents = await this.parentsService.findAllWithChildren();
-    return parents.map(parent => ({
-      parentName: `${parent.name} ${parent.lastName}`,
-      children: parent.children.map(child => ({
-        childName: `${child.name} ${child.lastName}`,
-      })),
-    }));
+  async getAllParentsWithChildren() {
+    const parentsWithChildren = await this.parentsService.findAllWithChildren();
+    return parentsWithChildren;
   }
 }
