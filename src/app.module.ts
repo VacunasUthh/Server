@@ -1,3 +1,4 @@
+import { ParentsModule } from './parents/parents.module';
 import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { VaccinesModule } from './vaccines/vaccines.module';
@@ -13,6 +14,7 @@ import { CorsMiddleware } from './cors.middleware';
 
 @Module({
   imports: [
+    ParentsModule,
     MongooseModule.forRoot(
       'mongodb+srv://vacunas:W0j3k2szYeMztEFM@clustervaccination.nny0wi6.mongodb.net/vaccinemanager',
     ),
