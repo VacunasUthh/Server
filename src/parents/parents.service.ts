@@ -15,26 +15,16 @@ export class ParentsService {
     return this.userModel.aggregate([
       {
         $lookup: {
-          from: 'children',
-          localField: '_id',
-          foreignField: 'parentId',
-          as: 'children',
+          from: 'childrens', // Nombre de la colección de hijos
+          localField: '_id', // Campo en la colección de padres
+          foreignField: 'parentId', // Campo en la colección de hijos
+          as: 'children', // Nombre del campo donde se almacenarán los hijos
         },
       },
       {
         $project: {
-          parentId: '$_id',
-          parentName: { $concat: ['$name', ' ', '$lastName'] },
-          children: {
-            $map: {
-              input: '$children',
-              as: 'child',
-              in: {
-                childId: '$$child._id',
-                childName: { $concat: ['$$child.name', ' ', '$$child.lastName'] },
-              },
-            },
-          },
+          parentName: { $concat: ['$name', ' ', '$lastName'] }, // Concatenar nombre completo del padre
+          children: '$children', // Incluir todos los campos de los hijos
         },
       },
     ]).exec();
