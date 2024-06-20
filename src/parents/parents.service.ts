@@ -12,21 +12,22 @@ export class ParentsService {
   ) {}
 
   async findAllWithChildren(): Promise<any> {
-    return this.userModel.aggregate([
-      {
-        $lookup: {
-          from: 'children', // Nombre de la colección de hijos
-          localField: '_id', // Campo en la colección de padres
-          foreignField: 'parentId', // Campo en la colección de hijos
-          as: 'children', // Nombre del campo donde se almacenarán los hijos
-        },
-      },
-      {
-        $project: {
-          parentName: { $concat: ['$name', ' ', '$lastName'] }, // Concatenar nombre completo del padre
-          children: '$children', // Incluir todos los campos de los hijos
-        },
-      },
-    ]).exec();
+    const parents = await this.userModel.find().exec(); // Obtener todos los padres
+
+    // Iterar sobre los padres y buscar a sus hijos
+    const parentsWithChildren = await Promise.all(parents.map(async parent => {
+      const children = await this.childrenModel.find({ parentId: parent._id }).exec(); // Buscar hijos del padre actual
+      return {
+        parentId: parent._id,
+        parentName: `${parent.name} ${parent.lastName}`,
+        children: children.map(child => ({
+          childId: child._id,
+          childName: `${child.name} ${child.lastName}`
+          // Aquí puedes incluir más campos de los hijos si es necesario
+        })),
+      };
+    }));
+
+    return parentsWithChildren;
   }
 }
