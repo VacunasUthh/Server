@@ -15,7 +15,7 @@ export class ParentsService {
     return this.userModel.aggregate([
       {
         $lookup: {
-          from: 'childrens', // Nombre de la colección de hijos
+          from: 'children', // Nombre de la colección de hijos
           localField: '_id', // Campo en la colección de padres
           foreignField: 'parentId', // Campo en la colección de hijos
           as: 'children', // Nombre del campo donde se almacenarán los hijos
