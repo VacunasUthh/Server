@@ -1,4 +1,3 @@
-
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema({
@@ -10,28 +9,34 @@ export class Children {
                 required: true,
         })
         parentId: string;
+
         @Prop()
         curp: string;
 
         @Prop()
         image: string;
+
         @Prop({
                 trim: true,
                 required: true,
         })
         name: string;
+
         @Prop({
                 trim: true,
                 required: true,
         })
         lastName: string;
+
         @Prop({
                 trim: true,
                 required: true,
         })
         secondLastName: string;
+
         @Prop()
         age: number;
+
         @Prop()
         gender: string;
 
@@ -40,6 +45,7 @@ export class Children {
 
         @Prop()
         weight: string;
+
         @Prop()
         imc: string;
 
@@ -57,10 +63,10 @@ export class Children {
 
         @Prop()
         vaccines: string;
-        
+
         @Prop()
         zipCode: string;
-        
+
         @Prop()
         state: string;
 
@@ -69,9 +75,15 @@ export class Children {
 
         @Prop()
         neighborhood: string;
+
         @Prop()
         hospital: string;
-}
 
+        @Prop({
+                type: String,
+                default: null,
+        })
+        assignedNurse: string | null; // Añadir el campo assignedNurse
+}
 
 export const ChildrenSchema = SchemaFactory.createForClass(Children);
