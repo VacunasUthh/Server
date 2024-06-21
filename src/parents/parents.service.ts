@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../schemas/user.schema';
 import { Children } from '../schemas/children.schema';
-import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class ParentsService {
@@ -13,7 +12,7 @@ export class ParentsService {
   ) {}
 
   async findAllUnassignedWithChildren(): Promise<any> {
-    const parents = await this.userModel.find({ assignedNurse: null }).exec();
+    const parents = await this.userModel.find({ assignedNurse: null, typeUser: 'paciente' }).exec();
 
     const parentsWithChildren = await Promise.all(parents.map(async parent => {
       const children = await this.childrenModel.find({ parentId: parent._id }).exec();
@@ -35,7 +34,7 @@ export class ParentsService {
     if (!nurse) {
       throw new NotFoundException('Nurse not found');
     }
-    return nurse._id.toString(); // Convertir ObjectId a string
+    return nurse._id.toString(); 
   }
 
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
