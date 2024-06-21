@@ -13,8 +13,8 @@ export class ParentsController {
   @Post('assign')
   async assignToNurse(
     @Body('parentId') parentId: string,
-    @Body('nurseEmail') nurseEmail: string,
-  ) {
-    return this.parentsService.assignToNurse(parentId, nurseEmail);
+    @Body('nurseEmail') nurseEmail: string
+  ): Promise<void> {
+    await this.parentsService.assignToNurse(parentId, nurseEmail);
   }
 }

@@ -30,11 +30,11 @@ export class ParentsService {
   }
 
   async findNurseByEmail(email: string): Promise<string> {
-    const nurse = await this.userModel.findOne({ email, role: 'nurse' }).exec();
+    const nurse = await this.userModel.findOne({ email, typeUser: 'nurse' }).exec();
     if (!nurse) {
       throw new NotFoundException('Nurse not found');
     }
-    return nurse._id.toString(); 
+    return nurse._id.toString();
   }
 
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
