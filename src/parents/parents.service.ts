@@ -52,7 +52,7 @@ export class ParentsService {
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
     try {
       const nurseId = await this.findNurseByEmail(nurseEmail);
-      const parentObjectId = new Types.ObjectId(parentId); // Asegurarse de que el parentId sea un ObjectId
+      const parentObjectId = new Types.ObjectId(parentId); 
       const parentUpdateResult = await this.userModel.findByIdAndUpdate(parentObjectId, { assignedNurse: nurseId }).exec();
       if (!parentUpdateResult) {
         console.error(`Parent with ID ${parentId} not found`);
@@ -64,5 +64,28 @@ export class ParentsService {
       console.error('Error assigning nurse to parent and children:', error);
       throw new InternalServerErrorException('Could not assign nurse to parent and children');
     }
+  }
+
+  async findAssignedParentsAndChildren(nurseEmail: string): Promise<any> {
+    const nurse = await this.userModel.findOne({ email: nurseEmail }).exec();
+    if (!nurse) {
+      throw new NotFoundException('Nurse not found');
+    }
+
+    const parents = await this.userModel.find({ assignedNurse: nurse._id }).exec();
+
+    const parentsWithChildren = await Promise.all(parents.map(async parent => {
+      const children = await this.childrenModel.find({ parentId: parent._id }).exec();
+      return {
+        parentId: parent._id,
+        parentName: `${parent.name} ${parent.lastName}`,
+        children: children.map(child => ({
+          childId: child._id,
+          childName: `${child.name} ${child.lastName}`
+        })),
+      };
+    }));
+
+    return parentsWithChildren;
   }
 }

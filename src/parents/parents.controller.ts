@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, HttpStatus, Query } from '@nestjs/common';
 import { ParentsService } from './parents.service';
 
 @Controller('parents')
@@ -8,6 +8,11 @@ export class ParentsController {
   @Get('unassigned')
   async findAllUnassignedWithChildren() {
     return this.parentsService.findAllUnassignedWithChildren();
+  }
+
+  @Get('assigned')
+  async findAssignedParentsAndChildren(@Query('email') nurseEmail: string) {
+    return this.parentsService.findAssignedParentsAndChildren(nurseEmail);
   }
 
   @Post('assign')

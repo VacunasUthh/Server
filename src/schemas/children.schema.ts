@@ -83,7 +83,7 @@ export class Children {
                 type: String,
                 default: null,
         })
-        assignedNurse: string | null; // Añadir el campo assignedNurse
+        assignedNurse: string | null; 
 }
 
 export const ChildrenSchema = SchemaFactory.createForClass(Children);
