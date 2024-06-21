@@ -38,6 +38,7 @@ export class ParentsService {
     try {
       const nurse = await this.userModel.findOne({ email, typeUser: 'nurse' }).exec();
       if (!nurse) {
+        console.error(`Nurse with email ${email} not found`);
         throw new NotFoundException('Nurse not found');
       }
       return nurse._id.toString();
@@ -51,8 +52,13 @@ export class ParentsService {
     try {
       const nurseId = await this.findNurseByEmail(nurseEmail);
       const parentObjectId = new Types.ObjectId(parentId); // Asegurarse de que el parentId sea un ObjectId
-      await this.userModel.findByIdAndUpdate(parentObjectId, { assignedNurse: nurseId }).exec();
-      await this.childrenModel.updateMany({ parentId: parentObjectId }, { assignedNurse: nurseId }).exec();
+      const parentUpdateResult = await this.userModel.findByIdAndUpdate(parentObjectId, { assignedNurse: nurseId }).exec();
+      if (!parentUpdateResult) {
+        console.error(`Parent with ID ${parentId} not found`);
+        throw new NotFoundException('Parent not found');
+      }
+      const childrenUpdateResult = await this.childrenModel.updateMany({ parentId: parentObjectId }, { assignedNurse: nurseId }).exec();
+      console.log('Children update result:', childrenUpdateResult);
     } catch (error) {
       console.error('Error assigning nurse to parent and children:', error);
       throw new InternalServerErrorException('Could not assign nurse to parent and children');
