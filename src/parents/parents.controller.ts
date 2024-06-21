@@ -1,13 +1,20 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ParentsService } from './parents.service';
 
 @Controller('parents')
 export class ParentsController {
   constructor(private readonly parentsService: ParentsService) {}
 
-  @Get()
-  async getAllParentsWithChildren() {
-    const parentsWithChildren = await this.parentsService.findAllWithChildren();
-    return parentsWithChildren;
+  @Get('unassigned')
+  async findAllUnassignedWithChildren() {
+    return this.parentsService.findAllUnassignedWithChildren();
+  }
+
+  @Post('assign')
+  async assignToNurse(
+    @Body('parentId') parentId: string,
+    @Body('nurseEmail') nurseEmail: string,
+  ) {
+    return this.parentsService.assignToNurse(parentId, nurseEmail);
   }
 }
