@@ -36,7 +36,7 @@ export class ParentsService {
 
   async findNurseByEmail(email: string): Promise<string> {
     try {
-      const nurse = await this.userModel.findOne({ email, typeUser: 'nurse' }).exec();
+      const nurse = await this.userModel.findOne({ email }).exec();
       if (!nurse) {
         console.error(`Nurse with email ${email} not found`);
         throw new NotFoundException('Nurse not found');
@@ -47,6 +47,7 @@ export class ParentsService {
       throw new InternalServerErrorException('Could not retrieve nurse by email');
     }
   }
+  
 
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
     try {
