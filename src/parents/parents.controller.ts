@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpException, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, InternalServerErrorException, Query } from '@nestjs/common';
 import { ParentsService } from './parents.service';
 
 @Controller('parents')
@@ -6,22 +6,25 @@ export class ParentsController {
   constructor(private readonly parentsService: ParentsService) {}
 
   @Get('unassigned')
-  async findAllUnassignedWithChildren() {
-    return this.parentsService.findAllUnassignedWithChildren();
+  async getAllUnassignedWithChildren() {
+    return await this.parentsService.findAllUnassignedWithChildren();
   }
 
   @Get('assigned')
-  async findAssignedParentsAndChildren(@Query('email') nurseEmail: string) {
-    return this.parentsService.findAssignedParentsAndChildren(nurseEmail);
+  async getAssignedParentsAndChildren(@Query('email') email: string) {
+    return await this.parentsService.findAssignedParentsAndChildren(email);
   }
 
-  @Post('assign')
-  async assignNurse(@Body() assignNurseDto: { parentId: string, nurseEmail: string }): Promise<void> {
+  @Get('details/:parentId')
+  async getParentDetails(@Param('parentId') parentId: string) {
     try {
-      await this.parentsService.assignToNurse(assignNurseDto.parentId, assignNurseDto.nurseEmail);
+      const parentDetails = await this.parentsService.findParentDetails(parentId);
+      return parentDetails;
     } catch (error) {
-      console.error('Error in assignNurse controller:', error);
-      throw new HttpException('Could not assign nurse', HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException('Parent not found');
+      }
+      throw new InternalServerErrorException('Could not retrieve parent details');
     }
   }
 }

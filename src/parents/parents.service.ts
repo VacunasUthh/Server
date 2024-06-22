@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from '../schemas/user.schema';
 import { Children } from '../schemas/children.schema';
+import { Vaccine } from '../schemas/vaccine.schema';
 
 @Injectable()
 export class ParentsService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>,
   ) {}
 
   async findAllUnassignedWithChildren(): Promise<any> {
@@ -47,7 +49,6 @@ export class ParentsService {
       throw new InternalServerErrorException('Could not retrieve nurse by email');
     }
   }
-  
 
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
     try {
@@ -87,5 +88,36 @@ export class ParentsService {
     }));
 
     return parentsWithChildren;
+  }
+
+  async findParentDetails(parentId: string): Promise<any> {
+    try {
+      const parent = await this.userModel.findById(parentId).exec();
+      if (!parent) {
+        throw new NotFoundException('Parent not found');
+      }
+
+      const children = await this.childrenModel.find({ parentId: parent._id }).exec();
+      const childrenWithVaccinations = await Promise.all(children.map(async child => {
+        const vaccinations = await this.vaccineModel.find({ childId: child._id }).exec();
+        return {
+          childId: child._id,
+          childName: `${child.name} ${child.lastName}`,
+          vaccinations: vaccinations.map(vaccine => ({
+            vaccineName: vaccine.name,
+            vaccinationDate: vaccine.date
+          })),
+        };
+      }));
+
+      return {
+        parentId: parent._id,
+        parentName: `${parent.name} ${parent.lastName}`,
+        children: childrenWithVaccinations,
+      };
+    } catch (error) {
+      console.error('Error finding parent details:', error);
+      throw new InternalServerErrorException('Could not retrieve parent details');
+    }
   }
 }
