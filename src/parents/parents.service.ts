@@ -11,7 +11,7 @@ export class ParentsService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
     @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>,
-  ) {}
+  ) { }
 
   async findAllUnassignedWithChildren(): Promise<any> {
     try {
@@ -53,7 +53,7 @@ export class ParentsService {
   async assignToNurse(parentId: string, nurseEmail: string): Promise<void> {
     try {
       const nurseId = await this.findNurseByEmail(nurseEmail);
-      const parentObjectId = new Types.ObjectId(parentId); 
+      const parentObjectId = new Types.ObjectId(parentId);
       const parentUpdateResult = await this.userModel.findByIdAndUpdate(parentObjectId, { assignedNurse: nurseId }).exec();
       if (!parentUpdateResult) {
         console.error(`Parent with ID ${parentId} not found`);
@@ -98,22 +98,21 @@ export class ParentsService {
       }
 
       const children = await this.childrenModel.find({ parentId: parent._id }).exec();
-      const childrenWithVaccinations = await Promise.all(children.map(async child => {
-        const vaccinations = await this.vaccineModel.find({ childId: child._id }).exec();
-        return {
-          childId: child._id,
-          childName: `${child.name} ${child.lastName}`,
-          vaccinations: vaccinations.map(vaccine => ({
-            vaccineName: vaccine.name,
-            vaccinationDate: vaccine.date
-          })),
-        };
+      const childrenDetails = children.map(child => ({
+        childId: child._id,
+        childName: `${child.name} ${child.lastName}`,
+        gender: child.gender || 'Sin información',
+        date: child.dateOfBirth || 'Sin información',
+        height: child.height || 'Sin información',
+        weight: child.weight || 'Sin información',
+        vaccines: child.vaccines || 'Sin información',
+        hospital: child.hospital || 'Sin información',
       }));
 
       return {
         parentId: parent._id,
         parentName: `${parent.name} ${parent.lastName}`,
-        children: childrenWithVaccinations,
+        children: childrenDetails,
       };
     } catch (error) {
       console.error('Error finding parent details:', error);
