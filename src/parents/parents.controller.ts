@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException, InternalServerErrorException, Query } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, InternalServerErrorException, Query, Post, Body } from '@nestjs/common';
 import { ParentsService } from './parents.service';
 
 @Controller('parents')
@@ -13,6 +13,14 @@ export class ParentsController {
   @Get('assigned')
   async getAssignedParentsAndChildren(@Query('email') email: string) {
     return await this.parentsService.findAssignedParentsAndChildren(email);
+  }
+
+  @Post('assign')
+  async assignToNurse(
+    @Body('parentId') parentId: string,
+    @Body('nurseEmail') nurseEmail: string,
+  ): Promise<void> {
+    await this.parentsService.assignToNurse(parentId, nurseEmail);
   }
 
   @Get('details/:parentId')
