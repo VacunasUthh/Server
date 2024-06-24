@@ -35,4 +35,10 @@ export class ParentsController {
       throw new InternalServerErrorException('Could not retrieve parent details');
     }
   }
+  
+  @Get('child/:childId')
+  async getChildVaccinations(@Param('childId') childId: string) {
+    const vaccineData = await this.parentsService.getVaccinationData(childId);
+    return vaccineData;
+  }
 }

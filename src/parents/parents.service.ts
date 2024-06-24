@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { User } from '../schemas/user.schema';
 import { Children } from '../schemas/children.schema';
 import { Vaccine } from '../schemas/vaccine.schema';
+import { VaccineMonth } from '../schemas/vaccineMonth.schema';
 
 @Injectable()
 export class ParentsService {
@@ -11,6 +12,7 @@ export class ParentsService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
     @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>,
+    @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
   ) { }
 
   async findAllUnassignedWithChildren(): Promise<any> {
@@ -118,5 +120,59 @@ export class ParentsService {
       console.error('Error finding parent details:', error);
       throw new InternalServerErrorException('Could not retrieve parent details');
     }
+  }
+
+  private parseDateOfBirth(dateOfBirth: string): Date {
+    const [day, month, year] = dateOfBirth.split('/').map(Number);
+    return new Date(year, month - 1, day); // month - 1 porque los meses en JavaScript van de 0 a 11
+  }
+
+  private calculateExpectedVaccineDate(birthDate: Date, months: number): Date {
+    const expectedDate = new Date(birthDate);
+    expectedDate.setMonth(expectedDate.getMonth() + months);
+    return expectedDate;
+  }
+
+  private calculateDaysDifference(startDate: Date, endDate: Date): number {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  public async getVaccinationData(childId: string) {
+    const child = await this.childrenModel.findById(childId).exec();
+    if (!child) {
+        throw new NotFoundException('Child not found.');
+    }
+
+    const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
+    const notifications = [];
+    const upcomingVaccinations = [];
+
+    const birthDate = this.parseDateOfBirth(child.dateOfBirth);
+    const childVaccines = child.vaccines || [];
+
+    for (const vaccineMonth of vaccineMonths) {
+        const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
+        const currentDate = new Date();
+
+        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId));
+
+        if (missingVaccines.length > 0) {
+            if (currentDate > expectedVaccineDate) {
+                notifications.push(...missingVaccines.map(vaccineId => ({
+                    vaccineId,
+                    expectedVaccineDate,
+                    delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate)
+                })));
+            } else {
+                upcomingVaccinations.push(...missingVaccines.map(vaccineId => ({
+                    vaccineId,
+                    expectedVaccineDate
+                })));
+            }
+        }
+    }
+
+    return { notifications, upcomingVaccinations };
   }
 }
