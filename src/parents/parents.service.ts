@@ -151,22 +151,31 @@ export class ParentsService {
     const birthDate = this.parseDateOfBirth(child.dateOfBirth);
     const childVaccines = child.vaccines || [];
 
+    // Obtener el mapa de ID de vacuna a nombre de vacuna
+    const allVaccines = await this.vaccineModel.find().lean().exec();
+    const vaccineMap = allVaccines.reduce((acc, vaccine) => {
+        acc[vaccine._id.toString()] = vaccine.name;  // Convertir ObjectId a string
+        return acc;
+    }, {} as { [key: string]: string });
+
     for (const vaccineMonth of vaccineMonths) {
         const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
         const currentDate = new Date();
 
-        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId));
+        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId.toString()));
 
         if (missingVaccines.length > 0) {
             if (currentDate > expectedVaccineDate) {
                 notifications.push(...missingVaccines.map(vaccineId => ({
-                    vaccineId,
+                    vaccineId: vaccineId.toString(),
+                    vaccineName: vaccineMap[vaccineId.toString()], // Añadir el nombre de la vacuna
                     expectedVaccineDate,
                     delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate)
                 })));
             } else {
                 upcomingVaccinations.push(...missingVaccines.map(vaccineId => ({
-                    vaccineId,
+                    vaccineId: vaccineId.toString(),
+                    vaccineName: vaccineMap[vaccineId.toString()], // Añadir el nombre de la vacuna
                     expectedVaccineDate
                 })));
             }
@@ -174,5 +183,8 @@ export class ParentsService {
     }
 
     return { notifications, upcomingVaccinations };
-  }
+}
+
+
+
 }
