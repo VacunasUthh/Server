@@ -13,13 +13,13 @@ export class EmailsService {
   private transporter: Transporter;
   private email: string = 'emailvacunas@gmail.com';
   private password: string = 'nlee bebk dsnh whke';
-  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
+  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map();
 
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
-    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine> 
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>
   ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -30,7 +30,7 @@ export class EmailsService {
     });
     setInterval(() => {
       this.clearExpiredCodes();
-    }, 5 * 60 * 1000); 
+    }, 5 * 60 * 1000);
   }
 
   private generateRandomCode(length: number): string {
@@ -49,10 +49,10 @@ export class EmailsService {
       throw new NotFoundException('El correo electrónico no está registrado.');
     }
 
-    const code = this.generateRandomCode(4); 
+    const code = this.generateRandomCode(4);
     const timestamp = Date.now();
 
-    this.generatedCodes.set(to, { code, timestamp }); 
+    this.generatedCodes.set(to, { code, timestamp });
 
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
@@ -75,8 +75,8 @@ export class EmailsService {
   private clearExpiredCodes() {
     const currentTime = Date.now();
     for (const [email, { code, timestamp }] of this.generatedCodes.entries()) {
-      if (currentTime - timestamp > 5 * 60 * 1000) { 
-        this.generatedCodes.delete(email); 
+      if (currentTime - timestamp > 5 * 60 * 1000) {
+        this.generatedCodes.delete(email);
       }
     }
   }
@@ -145,7 +145,7 @@ export class EmailsService {
     for (const childName in notifications) {
       notifications[childName] = [...new Set(notifications[childName])];
     }
-    
+
     for (const childName in upcomingVaccinations) {
       upcomingVaccinations[childName] = [...new Set(upcomingVaccinations[childName])];
     }
@@ -186,7 +186,7 @@ export class EmailsService {
 
   private parseDateOfBirth(dateOfBirth: string): Date {
     const [day, month, year] = dateOfBirth.split('/').map(Number);
-    return new Date(year, month - 1, day); // month - 1 porque los meses en JavaScript van de 0 a 11
+    return new Date(year, month + 1, day);
   }
 
   private calculateExpectedVaccineDate(birthDate: Date, months: number): Date {
@@ -263,7 +263,7 @@ export class EmailsService {
 
       for (const notification of notifications[childName]) {
         const vaccineId = notification.vaccineId;
-        const expectedVaccineDate = notification.expectedVaccineDate;
+        const expectedVaccineDate = notification.expectedVaccineDate.toLocaleDateString('es-ES');
         const delayDays = notification.delayDays;
 
         const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
