@@ -81,6 +81,7 @@ export class ParentsService {
       const children = await this.childrenModel.find({ parentId: parent._id }).exec();
       return {
         parentId: parent._id,
+        parentEmail: parent.email,
         parentName: `${parent.name} ${parent.lastName}`,
         children: children.map(child => ({
           childId: child._id,
