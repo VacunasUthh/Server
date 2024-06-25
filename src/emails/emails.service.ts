@@ -263,7 +263,7 @@ export class EmailsService {
 
       for (const notification of notifications[childName]) {
         const vaccineId = notification.vaccineId;
-        const expectedVaccineDate = notification.expectedVaccineDate.toLocaleDateString('es-ES');
+        const expectedVaccineDate = notification.expectedVaccineDate;
         const delayDays = notification.delayDays;
 
         const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
