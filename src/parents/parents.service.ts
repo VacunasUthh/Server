@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -198,137 +198,50 @@ export class ParentsService {
     };
   }
 
-  public async generateVaccinationReport(childId: string, res: Response): Promise<void> {
-    const vaccinationData = await this.getVaccinationData(childId);
+  async generateVaccinationReport(childId: string, res: Response): Promise<void> {
+    try {
+      const vaccinationData = await this.getVaccinationData(childId);
 
-    const pdfDoc = await PDFDocument.create();
-    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const doc = new PDFDocument();
+      doc.pipe(res);
 
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-    const fontSize = 12;
+      // Configuración del documento PDF
+      doc.fontSize(15).text('Reporte de Vacunación', { align: 'center' });
 
-    let yPosition = height - 4 * fontSize;
+      doc.moveDown();
 
-    // Título del reporte
-    page.drawText('Reporte de Vacunación', {
-      x: 50,
-      y: yPosition,
-      size: fontSize * 1.5,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
+      // Datos del niño
+      doc.fontSize(12).text(`Nombre del Niño: ${vaccinationData.childName}`);
+      doc.text(`Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}`);
+      doc.text(`Nombre del Padre: ${vaccinationData.parentName}`);
 
-    yPosition -= fontSize * 2;
+      doc.moveDown();
 
-    // Nombre del niño
-    page.drawText(`Nombre del Niño: ${vaccinationData.childName}`, {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
+      // Notificaciones
+      doc.fontSize(12).text('Notificaciones:');
+      doc.text('Nombre de la Vacuna      Fecha Esperada      Días de Retraso');
 
-    yPosition -= fontSize;
-
-    // Fecha de nacimiento del niño
-    page.drawText(`Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}`, {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    yPosition -= fontSize;
-
-    // Nombre del padre
-    page.drawText(`Nombre del Padre: ${vaccinationData.parentName}`, {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    yPosition -= fontSize * 2;
-
-    // Tabla de notificaciones
-    page.drawText('Notificaciones:', {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    yPosition -= fontSize;
-
-    page.drawText('Nombre de la Vacuna      Fecha Esperada      Días de Retraso', {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    yPosition -= fontSize * 1.5;
-
-    vaccinationData.notifications.forEach((notification) => {
-      page.drawText(`${notification.vaccineName}      ${new Date(notification.expectedVaccineDate).toLocaleDateString()}      ${notification.delayDays}`, {
-        x: 50,
-        y: yPosition,
-        size: fontSize,
-        font: timesRomanFont,
-        color: rgb(0, 0, 0),
+      vaccinationData.notifications.forEach((notification) => {
+        doc.text(`${notification.vaccineName}      ${new Date(notification.expectedVaccineDate).toLocaleDateString()}      ${notification.delayDays}`);
       });
-      yPosition -= fontSize;
-    });
 
-    yPosition -= fontSize * 2;
+      doc.moveDown();
 
-    // Tabla de próximas vacunaciones
-    page.drawText('Próximas Vacunaciones:', {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
+      // Próximas Vacunaciones
+      doc.fontSize(12).text('Próximas Vacunaciones:');
+      doc.text('Nombre de la Vacuna      Fecha Esperada');
 
-    yPosition -= fontSize;
-
-    page.drawText('Nombre de la Vacuna      Fecha Esperada', {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    yPosition -= fontSize * 1.5;
-
-    vaccinationData.upcomingVaccinations.forEach((vaccination) => {
-      page.drawText(`${vaccination.vaccineName}      ${new Date(vaccination.expectedVaccineDate).toLocaleDateString()}`, {
-        x: 50,
-        y: yPosition,
-        size: fontSize,
-        font: timesRomanFont,
-        color: rgb(0, 0, 0),
+      vaccinationData.upcomingVaccinations.forEach((vaccination) => {
+        doc.text(`${vaccination.vaccineName}      ${new Date(vaccination.expectedVaccineDate).toLocaleDateString()}`);
       });
-      yPosition -= fontSize;
-    });
 
-    const pdfBytes = await pdfDoc.save();
+      // Finalizar el documento y enviarlo al cliente
+      doc.end();
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=vaccination_report.pdf`);
-
-    res.send(pdfBytes);
-  } catch(error) {
-    console.error('Error generating PDF:', error);
-    throw new InternalServerErrorException('Error generating PDF report');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      throw new InternalServerErrorException('Error generating PDF report');
+    }
   }
 }
 
