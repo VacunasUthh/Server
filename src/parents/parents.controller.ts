@@ -1,4 +1,5 @@
-import { Controller, Get, Param, NotFoundException, InternalServerErrorException, Query, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, InternalServerErrorException, Query, Post, Body, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ParentsService } from './parents.service';
 
 @Controller('parents')
@@ -40,5 +41,10 @@ export class ParentsController {
   async getChildVaccinations(@Param('childId') childId: string) {
     const vaccineData = await this.parentsService.getVaccinationData(childId);
     return vaccineData;
+  }
+
+  @Get('child/:id/report')
+  async generateReport(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    return this.parentsService.generateVaccinationReport(id, res);
   }
 }
