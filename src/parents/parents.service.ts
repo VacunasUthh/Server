@@ -328,8 +328,10 @@ export class ParentsService {
     });
 
     res.send(pdfBytes);
+  } catch(error) {
+    console.error('Error generating PDF:', error);
+    throw new InternalServerErrorException('Error generating PDF report');
   }
-
-
-
 }
+
+
