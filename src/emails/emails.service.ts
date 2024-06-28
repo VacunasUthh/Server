@@ -13,13 +13,13 @@ export class EmailsService {
   private transporter: Transporter;
   private email: string = 'emailvacunas@gmail.com';
   private password: string = 'nlee bebk dsnh whke';
-  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map(); 
+  private generatedCodes: Map<string, { code: string, timestamp: number }> = new Map();
 
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
-    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine> 
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>
   ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -30,7 +30,7 @@ export class EmailsService {
     });
     setInterval(() => {
       this.clearExpiredCodes();
-    }, 5 * 60 * 1000); 
+    }, 5 * 60 * 1000);
   }
 
   private generateRandomCode(length: number): string {
@@ -49,10 +49,10 @@ export class EmailsService {
       throw new NotFoundException('El correo electrónico no está registrado.');
     }
 
-    const code = this.generateRandomCode(4); 
+    const code = this.generateRandomCode(4);
     const timestamp = Date.now();
 
-    this.generatedCodes.set(to, { code, timestamp }); 
+    this.generatedCodes.set(to, { code, timestamp });
 
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
@@ -75,8 +75,8 @@ export class EmailsService {
   private clearExpiredCodes() {
     const currentTime = Date.now();
     for (const [email, { code, timestamp }] of this.generatedCodes.entries()) {
-      if (currentTime - timestamp > 5 * 60 * 1000) { 
-        this.generatedCodes.delete(email); 
+      if (currentTime - timestamp > 5 * 60 * 1000) {
+        this.generatedCodes.delete(email);
       }
     }
   }
@@ -94,7 +94,7 @@ export class EmailsService {
     return await this.userModel.findOne({ email });
   }
 
-  async sendNotificationEmail(to: string) {
+  async sendNotificationEmail(to: string, observation: string = 'Sin observación') {
     const user = await this.findOneByEmail(to);
     if (!user) {
       throw new NotFoundException('El correo electrónico no está registrado.');
@@ -145,7 +145,7 @@ export class EmailsService {
     for (const childName in notifications) {
       notifications[childName] = [...new Set(notifications[childName])];
     }
-    
+
     for (const childName in upcomingVaccinations) {
       upcomingVaccinations[childName] = [...new Set(upcomingVaccinations[childName])];
     }
@@ -159,7 +159,7 @@ export class EmailsService {
       from: `"Sistema de vacunas" <${this.email}>`,
       to,
       subject: 'Notificación de vacunas faltantes y próximas',
-      html: await this.buildNotificationHtml(notifications, upcomingVaccinations),
+      html: await this.buildNotificationHtml(notifications, upcomingVaccinations, observation),
       attachments: [
         {
           filename: 'header.jpg',
@@ -184,9 +184,10 @@ export class EmailsService {
     }
   }
 
+
   private parseDateOfBirth(dateOfBirth: string): Date {
     const [day, month, year] = dateOfBirth.split('/').map(Number);
-    return new Date(year, month - 1, day); // month - 1 porque los meses en JavaScript van de 0 a 11
+    return new Date(year, month - 1, day); 
   }
 
   private calculateExpectedVaccineDate(birthDate: Date, months: number): Date {
@@ -200,7 +201,7 @@ export class EmailsService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  private async buildNotificationHtml(notifications: any, upcomingVaccinations: any): Promise<string> {
+  private async buildNotificationHtml(notifications: any, upcomingVaccinations: any, observation: string): Promise<string> {
     let html = `
       <!DOCTYPE html>
       <html>
@@ -252,14 +253,14 @@ export class EmailsService {
 
     for (const childName in notifications) {
       html += `
-        <h2>Hijo: ${childName}</h2>
-        <table>
-          <tr>
-            <th>Vacuna</th>
-            <th>Fecha esperada</th>
-            <th>Días de retraso</th>
-          </tr>
-      `;
+          <h2>Hijo: ${childName}</h2>
+          <table>
+            <tr>
+              <th>Vacuna</th>
+              <th>Fecha esperada</th>
+              <th>Días de retraso</th>
+            </tr>
+        `;
 
       for (const notification of notifications[childName]) {
         const vaccineId = notification.vaccineId;
@@ -270,12 +271,12 @@ export class EmailsService {
         const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
 
         html += `
-          <tr>
-            <td>${vaccineName}</td>
-            <td>${expectedVaccineDate}</td>
-            <td>${delayDays}</td>
-          </tr>
-        `;
+              <tr>
+                <td>${vaccineName}</td>
+                <td>${expectedVaccineDate}</td>
+                <td>${delayDays}</td>
+              </tr>
+            `;
       }
 
       html += `</table>`;
@@ -284,13 +285,13 @@ export class EmailsService {
     if (Object.keys(upcomingVaccinations).length > 0) {
       for (const childName in upcomingVaccinations) {
         html += `
-          <h2>Hijo: ${childName} (Vacunas próximas)</h2>
-          <table>
-            <tr>
-              <th>Vacuna</th>
-              <th>Fecha esperada</th>
-            </tr>
-        `;
+              <h2>Hijo: ${childName} (Vacunas próximas)</h2>
+              <table>
+                <tr>
+                  <th>Vacuna</th>
+                  <th>Fecha esperada</th>
+                </tr>
+            `;
 
         for (const vaccination of upcomingVaccinations[childName]) {
           const vaccineId = vaccination.vaccineId;
@@ -300,15 +301,22 @@ export class EmailsService {
           const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
 
           html += `
-            <tr>
-              <td>${vaccineName}</td>
-              <td>${expectedVaccineDate}</td>
-            </tr>
-          `;
+                  <tr>
+                    <td>${vaccineName}</td>
+                    <td>${expectedVaccineDate}</td>
+                  </tr>
+                `;
         }
 
         html += `</table>`;
       }
+    }
+
+    if (observation) {
+      html += `
+            <h3>Observación:</h3>
+            <p>${observation}</p>
+        `;
     }
 
     html += `
