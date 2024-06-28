@@ -201,53 +201,67 @@ export class ParentsService {
   async generateVaccinationReport(childId: string, res: Response): Promise<void> {
     try {
       const vaccinationData = await this.getVaccinationData(childId);
-
+  
       const doc = new PDFDocument();
       doc.pipe(res);
-
+  
       // Configuración del documento PDF
       doc.fontSize(15).text('Reporte de Vacunación', { align: 'center' });
-
+  
       doc.moveDown();
-
+  
       // Datos del niño
       doc.fontSize(12).text(`Nombre del Niño: ${vaccinationData.childName}`);
       doc.text(`Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}`);
       doc.text(`Nombre del Padre: ${vaccinationData.parentName}`);
-
+  
       doc.moveDown();
-
-      // Notificaciones
+  
+      // Notificaciones (Vacunas Retrasadas)
       doc.fontSize(12).text('Vacunas Retrasadas:');
-      doc.table({
-        headers: ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
-        rows: vaccinationData.notifications.map(notification => [
-          notification.vaccineName,
-          new Date(notification.expectedVaccineDate).toLocaleDateString(),
-          notification.delayDays.toString()
-        ])
-      });
-
+      if (vaccinationData.notifications.length > 0) {
+        doc.table({
+          headers: ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
+          rows: vaccinationData.notifications.map(notification => [
+            notification.vaccineName,
+            new Date(notification.expectedVaccineDate).toLocaleDateString(),
+            notification.delayDays.toString()
+          ])
+        });
+      } else {
+        doc.text('No hay vacunas retrasadas.');
+      }
+  
       doc.moveDown();
-
+  
       // Próximas Vacunaciones
       doc.fontSize(12).text('Próximas Vacunaciones:');
-      doc.table({
-        headers: ['Nombre de la Vacuna', 'Fecha Esperada'],
-        rows: vaccinationData.upcomingVaccinations.map(vaccination => [
-          vaccination.vaccineName,
-          new Date(vaccination.expectedVaccineDate).toLocaleDateString()
-        ])
-      });
-
+      if (vaccinationData.upcomingVaccinations.length > 0) {
+        doc.table({
+          headers: ['Nombre de la Vacuna', 'Fecha Esperada'],
+          rows: vaccinationData.upcomingVaccinations.map(vaccination => [
+            vaccination.vaccineName,
+            new Date(vaccination.expectedVaccineDate).toLocaleDateString()
+          ])
+        });
+      } else {
+        doc.text('No hay próximas vacunaciones programadas.');
+      }
+  
       // Finalizar el documento y enviarlo al cliente
       doc.end();
-
+  
     } catch (error) {
       console.error('Error generating PDF:', error);
-      throw new InternalServerErrorException('Error generating PDF report');
+  
+      // Enviar una respuesta con detalles del error
+      res.status(500).json({
+        message: 'Error generating PDF report',
+        error: error.message,
+        stack: error.stack,
+      });
     }
-  }
+  }  
 }
 
 
