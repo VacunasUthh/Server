@@ -322,10 +322,8 @@ export class ParentsService {
 
     const pdfBytes = await pdfDoc.save();
 
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename=vaccination_report.pdf',
-    });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=vaccination_report.pdf`);
 
     res.send(pdfBytes);
   } catch(error) {
