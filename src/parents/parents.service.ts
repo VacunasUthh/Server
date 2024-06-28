@@ -218,21 +218,26 @@ export class ParentsService {
       doc.moveDown();
 
       // Notificaciones
-      doc.fontSize(12).text('Notificaciones:');
-      doc.text('Nombre de la Vacuna      Fecha Esperada      Días de Retraso');
-
-      vaccinationData.notifications.forEach((notification) => {
-        doc.text(`${notification.vaccineName}      ${new Date(notification.expectedVaccineDate).toLocaleDateString()}      ${notification.delayDays}`);
+      doc.fontSize(12).text('Vacunas Retrasadas:');
+      doc.table({
+        headers: ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
+        rows: vaccinationData.notifications.map(notification => [
+          notification.vaccineName,
+          new Date(notification.expectedVaccineDate).toLocaleDateString(),
+          notification.delayDays.toString()
+        ])
       });
 
       doc.moveDown();
 
       // Próximas Vacunaciones
       doc.fontSize(12).text('Próximas Vacunaciones:');
-      doc.text('Nombre de la Vacuna      Fecha Esperada');
-
-      vaccinationData.upcomingVaccinations.forEach((vaccination) => {
-        doc.text(`${vaccination.vaccineName}      ${new Date(vaccination.expectedVaccineDate).toLocaleDateString()}`);
+      doc.table({
+        headers: ['Nombre de la Vacuna', 'Fecha Esperada'],
+        rows: vaccinationData.upcomingVaccinations.map(vaccination => [
+          vaccination.vaccineName,
+          new Date(vaccination.expectedVaccineDate).toLocaleDateString()
+        ])
       });
 
       // Finalizar el documento y enviarlo al cliente
