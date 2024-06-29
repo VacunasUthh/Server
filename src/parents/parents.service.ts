@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import * as pdfMakePrinter from 'pdfmake';
+import * as pdf from 'html-pdf'; // Importa html-pdf
 import { Response } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -202,65 +202,85 @@ export class ParentsService {
     try {
       const vaccinationData = await this.getVaccinationData(childId);
 
-      const docDefinition = {
-        content: [
-          { text: 'Reporte de Vacunación', style: 'header' },
-          { text: `Nombre del Niño: ${vaccinationData.childName}` },
-          { text: `Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}` },
-          { text: `Nombre del Padre: ${vaccinationData.parentName}` },
-          { text: 'Vacunas Retrasadas:', style: 'subheader' },
-          vaccinationData.notifications.length > 0 ? {
-            table: {
-              body: [
-                ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
-                ...vaccinationData.notifications.map(notification => [
-                  notification.vaccineName,
-                  new Date(notification.expectedVaccineDate).toLocaleDateString(),
-                  notification.delayDays.toString()
-                ])
-              ]
-            }
-          } : { text: 'No hay vacunas retrasadas.' },
-          { text: 'Próximas Vacunaciones:', style: 'subheader' },
-          vaccinationData.upcomingVaccinations.length > 0 ? {
-            table: {
-              body: [
-                ['Nombre de la Vacuna', 'Fecha Esperada'],
-                ...vaccinationData.upcomingVaccinations.map(vaccination => [
-                  vaccination.vaccineName,
-                  new Date(vaccination.expectedVaccineDate).toLocaleDateString()
-                ])
-              ]
-            }
-          } : { text: 'No hay próximas vacunaciones programadas.' }
-        ],
-        styles: {
-          header: {
-            fontSize: 18,
-            bold: true,
-            margin: [0, 0, 0, 10]
-          },
-          subheader: {
-            fontSize: 14,
-            bold: true,
-            margin: [0, 10, 0, 5]
-          }
+      // Genera el contenido HTML para el reporte
+      const htmlContent = `
+        <html>
+        <head>
+          <style>
+            .header { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+            .subheader { font-size: 14px; font-weight: bold; margin: 10px 0 5px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            table, th, td { border: 1px solid black; }
+            th, td { padding: 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <div class="header">Reporte de Vacunación</div>
+          <p>Nombre del Niño: ${vaccinationData.childName}</p>
+          <p>Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}</p>
+          <p>Nombre del Padre: ${vaccinationData.parentName}</p>
+          <div class="subheader">Vacunas Retrasadas:</div>
+          ${vaccinationData.notifications.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre de la Vacuna</th>
+                  <th>Fecha Esperada</th>
+                  <th>Días de Retraso</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${vaccinationData.notifications.map(notification => `
+                  <tr>
+                    <td>${notification.vaccineName}</td>
+                    <td>${new Date(notification.expectedVaccineDate).toLocaleDateString()}</td>
+                    <td>${notification.delayDays}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : '<p>No hay vacunas retrasadas.</p>'}
+          <div class="subheader">Próximas Vacunaciones:</div>
+          ${vaccinationData.upcomingVaccinations.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre de la Vacuna</th>
+                  <th>Fecha Esperada</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${vaccinationData.upcomingVaccinations.map(vaccination => `
+                  <tr>
+                    <td>${vaccination.vaccineName}</td>
+                    <td>${new Date(vaccination.expectedVaccineDate).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : '<p>No hay próximas vacunaciones programadas.</p>'}
+        </body>
+        </html>
+      `;
+
+      // Opciones para html-pdf
+      const options = { format: 'A4' };
+
+      pdf.create(htmlContent, options).toStream((err, stream) => {
+        if (err) {
+          console.error('Error generating PDF:', err);
+          res.status(500).json({
+            message: 'Error generating PDF report',
+            error: err.message,
+            stack: err.stack,
+          });
+          return;
         }
-      };
 
-      const printer = new pdfMakePrinter({ Roboto: { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Bold.ttf' } });
-      const doc = printer.createPdfKitDocument(docDefinition);
-      const chunks = [];
-
-      doc.on('data', chunk => chunks.push(chunk));
-      doc.on('end', () => {
-        const result = Buffer.concat(chunks);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=Reporte_de_Vacunación.pdf');
-        res.send(result);
+        stream.pipe(res);
       });
-
-      doc.end();
 
     } catch (error) {
       console.error('Error generating PDF:', error);
