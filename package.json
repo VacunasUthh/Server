@@ -39,6 +39,7 @@
     "pdfkit": "^0.15.0",
     "pdfkit-table": "^0.1.99",
     "pdfmake": "^0.2.10",
+    "phantomjs-prebuilt": "^2.1.16",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "streamifier": "^0.1.1"
