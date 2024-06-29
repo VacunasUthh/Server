@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import PDFDocument from 'pdfkit';
+import * as pdfMakePrinter from 'pdfmake';
 import { Response } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -7,7 +7,6 @@ import { User } from '../schemas/user.schema';
 import { Children } from '../schemas/children.schema';
 import { Vaccine } from '../schemas/vaccine.schema';
 import { VaccineMonth } from '../schemas/vaccineMonth.schema';
-import PDFDocumentWithTables from 'pdfkit-table'; 
 
 @Injectable()
 export class ParentsService {
@@ -202,70 +201,69 @@ export class ParentsService {
   async generateVaccinationReport(childId: string, res: Response): Promise<void> {
     try {
       const vaccinationData = await this.getVaccinationData(childId);
-      const doc = new PDFDocument();
-      const doc1 = new PDFDocumentWithTables();
 
+      const docDefinition = {
+        content: [
+          { text: 'Reporte de Vacunación', style: 'header' },
+          { text: `Nombre del Niño: ${vaccinationData.childName}` },
+          { text: `Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}` },
+          { text: `Nombre del Padre: ${vaccinationData.parentName}` },
+          { text: 'Vacunas Retrasadas:', style: 'subheader' },
+          vaccinationData.notifications.length > 0 ? {
+            table: {
+              body: [
+                ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
+                ...vaccinationData.notifications.map(notification => [
+                  notification.vaccineName,
+                  new Date(notification.expectedVaccineDate).toLocaleDateString(),
+                  notification.delayDays.toString()
+                ])
+              ]
+            }
+          } : { text: 'No hay vacunas retrasadas.' },
+          { text: 'Próximas Vacunaciones:', style: 'subheader' },
+          vaccinationData.upcomingVaccinations.length > 0 ? {
+            table: {
+              body: [
+                ['Nombre de la Vacuna', 'Fecha Esperada'],
+                ...vaccinationData.upcomingVaccinations.map(vaccination => [
+                  vaccination.vaccineName,
+                  new Date(vaccination.expectedVaccineDate).toLocaleDateString()
+                ])
+              ]
+            }
+          } : { text: 'No hay próximas vacunaciones programadas.' }
+        ],
+        styles: {
+          header: {
+            fontSize: 18,
+            bold: true,
+            margin: [0, 0, 0, 10]
+          },
+          subheader: {
+            fontSize: 14,
+            bold: true,
+            margin: [0, 10, 0, 5]
+          }
+        }
+      };
 
-      doc.fontSize(15).text('Reporte de Vacunación', { align: 'center' });
+      const printer = new pdfMakePrinter({ Roboto: { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Bold.ttf' } });
+      const doc = printer.createPdfKitDocument(docDefinition);
+      const chunks = [];
 
-      doc.moveDown();
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => {
+        const result = Buffer.concat(chunks);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=Reporte_de_Vacunación.pdf');
+        res.send(result);
+      });
 
-      // Datos del niño
-      doc.fontSize(12).text(`Nombre del Niño: ${vaccinationData.childName}`);
-      doc.text(`Fecha de Nacimiento: ${new Date(vaccinationData.childBirthDate).toLocaleDateString()}`);
-      doc.text(`Nombre del Padre: ${vaccinationData.parentName}`);
-
-      doc.moveDown();
-
-      // Notificaciones (Vacunas Retrasadas)
-      doc.fontSize(12).text('Vacunas Retrasadas:');
-      if (vaccinationData.notifications.length > 0) {
-        await doc1.table({
-          headers: ['Nombre de la Vacuna', 'Fecha Esperada', 'Días de Retraso'],
-          rows: vaccinationData.notifications.map(notification => [
-            notification.vaccineName,
-            new Date(notification.expectedVaccineDate).toLocaleDateString(),
-            notification.delayDays.toString(),
-          ]),
-        }, {
-          width: 500,
-          x: 50,
-          y: doc.y,
-        });
-      } else {
-        doc.text('No hay vacunas retrasadas.');
-      }
-
-      doc.moveDown();
-
-      // Próximas Vacunaciones
-      doc.fontSize(12).text('Próximas Vacunaciones:');
-      if (vaccinationData.upcomingVaccinations.length > 0) {
-        await doc1.table({
-          headers: ['Nombre de la Vacuna', 'Fecha Esperada'],
-          rows: vaccinationData.upcomingVaccinations.map(vaccination => [
-            vaccination.vaccineName,
-            new Date(vaccination.expectedVaccineDate).toLocaleDateString(),
-          ]),
-        }, {
-          width: 500,
-          x: 50,
-          y: doc.y,
-        });
-      } else {
-        doc.text('No hay próximas vacunaciones programadas.');
-      }
-
-      // Finalizar el documento y enviarlo al cliente
-      doc.pipe(res);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=Reporte_de_Vacunación.pdf');
       doc.end();
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-
-      // Enviar una respuesta con detalles del error
       res.status(500).json({
         message: 'Error generating PDF report',
         error: error instanceof Error ? error.message : 'Unknown error',
