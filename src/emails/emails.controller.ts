@@ -3,7 +3,7 @@ import { EmailsService } from './emails.service';
 
 @Controller('emails')
 export class EmailsController {
-  constructor(private readonly emailsService: EmailsService) {}
+  constructor(private readonly emailsService: EmailsService) { }
 
   @Post('send-recovery-code')
   async sendRecoveryCode(@Body('email') email: string) {
@@ -25,11 +25,15 @@ export class EmailsController {
   }
 
   @Post('send-notification-email')
-  async sendNotificationEmail(@Body('email') email: string) {
+  async sendNotificationEmail(
+    @Body('parentEmail') parentEmail: string,
+    @Body('observation') observation: string,
+  ) {
     try {
-      return await this.emailsService.sendNotificationEmail(email);
+      return await this.emailsService.sendNotificationEmail(parentEmail, observation);
     } catch (error) {
       throw new HttpException('Error al enviar la notificación de vacunas', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
 }
