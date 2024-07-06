@@ -48,8 +48,8 @@ export class UsersService {
                         .select('-password');
         }
 
-        async findOne(id: string) {
-                return await this.userModel.findById(id);
+        async findOne(id: string): Promise<User> {
+                return await this.userModel.findById(id).exec();
         }
 
         async findOneByEmail(email: string) {

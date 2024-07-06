@@ -18,12 +18,12 @@ export class UsersController {
         }
 
         @Get(':id')
-        async findOne(id: string) {
-                const user = await this.userService.findOne(id);
-                if (!user) {
-                        throw new NotFoundException(`User with ID ${id} not found`);
-                }
-                return user;
+        async findOne(@Param('id') id: string) { 
+          const user = await this.userService.findOne(id);
+          if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+          }
+          return user;
         }
 
         @Post()
