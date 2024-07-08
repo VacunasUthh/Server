@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException,NotFoundException  } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateUserDto } from '../dto/users/create.users.dto';
+import { UpdateUserDto } from '../dto/users/update.users.dto';
 import { User } from '../schemas/user.schema';
 import * as bcrypt from 'bcryptjs';
 
@@ -93,24 +94,25 @@ export class UsersService {
                 return user;
         }//
 
-        async updateUserById(id: string, updateUser: any) {
-                // Obtén el usuario actual
+        async updateUserById(id: string, updateUser: UpdateUserDto) {
                 const currentUser = await this.userModel.findById(id).exec();
                 if (!currentUser) {
-                        throw new Error('User not found');
+                    throw new NotFoundException(`User with ID ${id} not found`);
                 }
-
-                // Realiza la actualización en la base de datos con todos los campos recibidos
+                const updates: any = { ...updateUser };
+        
+                if (updates.birthDate) {
+                    updates.birthDate = new Date(updates.birthDate);
+                }
+                delete updates.password;
+        
                 return this.userModel.findByIdAndUpdate(
-                        id,
-                        { $set: updateUser },
-                        {
-                                new: true,
-                                runValidators: true,
-                        },
+                    id,
+                    { $set: updates },
+                    {
+                        new: true,
+                        runValidators: true,
+                    },
                 ).exec();
-        }
-
-
-
+            }
 }
