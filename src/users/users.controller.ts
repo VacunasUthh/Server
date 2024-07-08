@@ -55,10 +55,10 @@ export class UsersController {
 
         @Put('actualizar/:id')
         async partialUpdate(@Body() updateUser: UpdateUserDto, @Param('id') id: string) {
-                const updatedUser = await this.userService.updateUserById(id, updateUser);
-                if (!updatedUser) {
-                        throw new NotFoundException(`User with ID ${id} not found`);
-                }
-                return updatedUser;
+            const updatedUser = await this.userService.updateUserById(id, updateUser);
+            if (!updatedUser) {
+                throw new NotFoundException(`User with ID ${id} not found`);
+            }
+            return updatedUser;
         }
 }
