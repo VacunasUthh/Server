@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, NotFoundException  } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from '../dto/users/create.users.dto';
 import { UpdateUserDto } from '../dto/users/update.users.dto';
@@ -18,12 +18,12 @@ export class UsersController {
         }
 
         @Get(':id')
-        async findOne(@Param('id') id: string) { 
-          const user = await this.userService.findOne(id);
-          if (!user) {
-            throw new NotFoundException(`User with ID ${id} not found`);
-          }
-          return user;
+        async findOne(@Param('id') id: string) {
+                const user = await this.userService.findOne(id);
+                if (!user) {
+                        throw new NotFoundException(`User with ID ${id} not found`);
+                }
+                return user;
         }
 
         @Post()
@@ -51,5 +51,14 @@ export class UsersController {
         async loginWeb(@Body() body: { email: string, password: string }) {
                 const { email, password } = body;
                 return this.userService.loginWeb(email, password);
+        }
+
+        @Put('actualizar/:id')
+        async partialUpdate(@Body() updateUser: UpdateUserDto, @Param('id') id: string) {
+                const updatedUser = await this.userService.updateUserById(id, updateUser);
+                if (!updatedUser) {
+                        throw new NotFoundException(`User with ID ${id} not found`);
+                }
+                return updatedUser;
         }
 }

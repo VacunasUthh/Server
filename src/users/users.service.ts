@@ -59,7 +59,7 @@ export class UsersService {
         async delete(id: string) {
                 return this.userModel.findOneAndDelete({ _id: id });
         }
-        
+
         async resetPassword(email: string, newPassword: string): Promise<boolean> {
                 const user = await this.findOneByEmail(email);
                 if (!user) {
@@ -72,24 +72,53 @@ export class UsersService {
 
         async loginWeb(email: string, password: string) {
                 const user = await this.findOneByEmail(
-                    email.toLocaleLowerCase().trim(), // Corregido el acceso a la función dentro del servicio
+                        email.toLocaleLowerCase().trim(), // Corregido el acceso a la función dentro del servicio
                 );
-        
+
                 if (!user) {
-                    throw new UnauthorizedException('Las credenciales no son válidas.');
+                        throw new UnauthorizedException('Las credenciales no son válidas.');
                 }
-        
+
                 const isValid = await bcrypt.compare(password.trim(), user.password);
-        
+
                 if (!isValid) {
-                    throw new UnauthorizedException('Las credenciales no son válidas.');
+                        throw new UnauthorizedException('Las credenciales no son válidas.');
                 }
-        
+
                 if (user.typeUser !== 'trabajador') {
-                    throw new ForbiddenException('Acceso denegado para pacientes.');
+                        throw new ForbiddenException('Acceso denegado para pacientes.');
                 }
-        
+
                 delete user.password;
                 return user;
-            }//
+        }//
+
+        async updateUserById(id: string, updateUser: any) {
+                const currentUser = await this.userModel.findById(id).exec();
+                if (!currentUser) {
+                        throw new Error('User not found');
+                }
+
+                const updates = {};
+
+                for (const key in updateUser) {
+                        if (updateUser[key] !== currentUser[key]) {
+                                updates[key] = updateUser[key];
+                        }
+                }
+
+                if (Object.keys(updates).length > 0) {
+                        return this.userModel.findByIdAndUpdate(
+                                id,
+                                { $set: updates },
+                                {
+                                        new: true,
+                                        runValidators: true,
+                                },
+                        ).exec();
+                }
+
+                return currentUser;
+        }
+
 }
