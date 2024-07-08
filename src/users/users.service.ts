@@ -96,29 +96,27 @@ export class UsersService {
         async updateUserById(id: string, updateUser: any) {
                 const currentUser = await this.userModel.findById(id).exec();
                 if (!currentUser) {
-                        throw new Error('User not found');
+                    throw new Error('User not found');
                 }
-
                 const updates = {};
-
                 for (const key in updateUser) {
-                        if (updateUser[key] !== currentUser[key]) {
-                                updates[key] = updateUser[key];
-                        }
+                    if (updateUser.hasOwnProperty(key)) {
+                        updates[key] = updateUser[key];
+                    }
                 }
-
+            
                 if (Object.keys(updates).length > 0) {
-                        return this.userModel.findByIdAndUpdate(
-                                id,
-                                { $set: updates },
-                                {
-                                        new: true,
-                                        runValidators: true,
-                                },
-                        ).exec();
+                    return this.userModel.findByIdAndUpdate(
+                        id,
+                        { $set: updates },
+                        {
+                            new: true,
+                            runValidators: true,
+                        },
+                    ).exec();
                 }
-
                 return currentUser;
-        }
+            }
+            
 
 }
