@@ -100,12 +100,12 @@ export class UsersService {
                     throw new NotFoundException(`User with ID ${id} not found`);
                 }
                 const updates: any = { ...updateUser };
-        
+            
                 if (updates.birthDate) {
                     updates.birthDate = new Date(updates.birthDate);
                 }
                 delete updates.password;
-        
+            
                 return this.userModel.findByIdAndUpdate(
                     id,
                     { $set: updates },
@@ -114,5 +114,5 @@ export class UsersService {
                         runValidators: true,
                     },
                 ).exec();
-            }
+            }            
 }
