@@ -18,17 +18,25 @@ export class Campaigns {
         })
         description: string;
         @Prop()
-        date: string[];
+        startdate: string[];
+        @Prop()
+        finaldate: string[];
         @Prop()
         hour: string[];
         @Prop()
-        place: string[];
+        state: string[];
+        @Prop()
+        city: string[];
+        @Prop()
+        colony: string[];
         @Prop()
         vaccines: string[];
         @Prop()
-        disease: string[];
+        sideeffects: string[];
         @Prop()
-        population: string[];
+        age: string[];
+        @Prop()
+        assignednurse: string[];
 }
 
 

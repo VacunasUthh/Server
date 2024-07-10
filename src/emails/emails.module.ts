@@ -6,6 +6,7 @@ import { User, UserSchema } from '../schemas/user.schema';
 import { Children, ChildrenSchema } from '../schemas/children.schema'; 
 import { VaccineMonth, VaccineMonthSchema } from '../schemas/vaccineMonth.schema'; 
 import { Vaccine, VaccineSchema } from '../schemas/vaccine.schema';
+import { Campaigns, CampaignsSchema } from '../schemas/campaigns.schema';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { Vaccine, VaccineSchema } from '../schemas/vaccine.schema';
       { name: Children.name, schema: ChildrenSchema }, 
       { name: VaccineMonth.name, schema: VaccineMonthSchema }, 
       { name: Vaccine.name, schema: VaccineSchema },
+      { name: Campaigns.name, schema: CampaignsSchema },
     ]),
   ],
   providers: [EmailsService],

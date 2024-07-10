@@ -16,20 +16,32 @@ export class UpdateCampaignDto {
         description: string;
 
         @IsArray()
-        date: string[];
+        startdate: string[];
+
+        @IsArray()
+        finaldate: string[];
 
         @IsArray()
         hour: string[];
 
         @IsArray()
-        place: string[];
+        state: string[];
+
+        @IsArray()
+        city: string[];
+
+        @IsArray()
+        colony: string[];
 
         @IsArray()
         vaccines: string[];
 
         @IsArray()
-        disease: string[];
+        sideeffects: string[];
 
         @IsArray()
-        population: string[];
+        age: string[];
+
+        @IsArray()
+        assignednurse: string[];
 }

@@ -7,6 +7,7 @@ import { User } from '../schemas/user.schema';
 import { VaccineMonth } from '../schemas/vaccineMonth.schema';
 import { Vaccine } from '../schemas/vaccine.schema';
 import { Children } from '../schemas/children.schema';
+import { Campaigns} from '../schemas/campaigns.schema';
 
 @Injectable()
 export class EmailsService {
@@ -19,7 +20,8 @@ export class EmailsService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
     @InjectModel(Children.name) private childrenModel: Model<Children>,
-    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>
+    @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>,
+    @InjectModel(Campaigns.name) private CampaignsModel: Model<Campaigns>
   ) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
