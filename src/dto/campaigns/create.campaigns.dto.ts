@@ -42,6 +42,6 @@ export class CreateCampaignDto {
         @IsArray()
         age: string[];
 
-        @IsArray()
+        @IsString()
         assignednurse: string[];
 }

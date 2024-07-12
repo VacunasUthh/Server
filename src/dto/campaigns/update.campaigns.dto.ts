@@ -42,6 +42,6 @@ export class UpdateCampaignDto {
         @IsArray()
         age: string[];
 
-        @IsArray()
+        @IsString()
         assignednurse: string[];
 }
