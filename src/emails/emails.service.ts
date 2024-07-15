@@ -461,10 +461,6 @@ export class EmailsService {
               <th>Edad</th>
               <td>${campaign.age.join(', ')}</td>
             </tr>
-            <tr>
-              <th>Enfermera asignada</th>
-              <td>${campaign.assignednurse.join(', ')}</td>
-            </tr>
           </table>
         </div>
         <div class="footer">
