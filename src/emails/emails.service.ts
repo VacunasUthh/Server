@@ -415,26 +415,6 @@ export class EmailsService {
           th {
             background-color: #f2f2f2;
           }
-          .btn {
-            background-color: #007BFF;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            margin: 4px 2px;
-            cursor: pointer;
-          }
-          .btn:hover {
-            background-color: #0056b3;
-          }
-          .details {
-            display: none;
-            margin-top: 20px;
-          }
-          .details.show {
-            display: block;
-          }
         </style>
       </head>
       <body>
@@ -444,65 +424,52 @@ export class EmailsService {
         <div class="content">
           <h1>${campaign.name}</h1>
           <p>${campaign.description}</p>
-          <button class="btn" onclick="toggleDetails()">Ver detalles</button>
-          <div id="details" class="details">
-            <table>
-              <tr>
-                <th>Fecha de inicio</th>
-                <td>${new Date(campaign.startdate[0]).toLocaleDateString('es-ES')}</td>
-              </tr>
-              <tr>
-                <th>Fecha de finalización</th>
-                <td>${new Date(campaign.finaldate[0]).toLocaleDateString('es-ES')}</td>
-              </tr>
-              <tr>
-                <th>Horario</th>
-                <td>${campaign.hour[0]}</td>
-              </tr>
-              <tr>
-                <th>Estado</th>
-                <td>${campaign.state[0]}</td>
-              </tr>
-              <tr>
-                <th>Ciudad</th>
-                <td>${campaign.city[0]}</td>
-              </tr>
-              <tr>
-                <th>Colonia</th>
-                <td>${campaign.colony[0]}</td>
-              </tr>
-              <tr>
-                <th>Vacunas</th>
-                <td>${campaign.vaccines.join(', ')}</td>
-              </tr>
-              <tr>
-                <th>Efectos secundarios</th>
-                <td>${campaign.sideeffects.join(', ')}</td>
-              </tr>
-              <tr>
-                <th>Edad</th>
-                <td>${campaign.age.join(', ')}</td>
-              </tr>
-              <tr>
-                <th>Enfermera asignada</th>
-                <td>${campaign.assignednurse.join(', ')}</td>
-              </tr>
-            </table>
-          </div>
+          <table>
+            <tr>
+              <th>Fecha de inicio</th>
+              <td>${new Date(campaign.startdate[0]).toLocaleDateString('es-ES')}</td>
+            </tr>
+            <tr>
+              <th>Fecha de finalización</th>
+              <td>${new Date(campaign.finaldate[0]).toLocaleDateString('es-ES')}</td>
+            </tr>
+            <tr>
+              <th>Horario</th>
+              <td>${campaign.hour[0]}</td>
+            </tr>
+            <tr>
+              <th>Estado</th>
+              <td>${campaign.state[0]}</td>
+            </tr>
+            <tr>
+              <th>Ciudad</th>
+              <td>${campaign.city[0]}</td>
+            </tr>
+            <tr>
+              <th>Colonia</th>
+              <td>${campaign.colony[0]}</td>
+            </tr>
+            <tr>
+              <th>Vacunas</th>
+              <td>${campaign.vaccines.join(', ')}</td>
+            </tr>
+            <tr>
+              <th>Efectos secundarios</th>
+              <td>${campaign.sideeffects.join(', ')}</td>
+            </tr>
+            <tr>
+              <th>Edad</th>
+              <td>${campaign.age.join(', ')}</td>
+            </tr>
+            <tr>
+              <th>Enfermera asignada</th>
+              <td>${campaign.assignednurse.join(', ')}</td>
+            </tr>
+          </table>
         </div>
         <div class="footer">
           <img src="cid:campaignFooter" alt="Footer Image">
         </div>
-        <script>
-          function toggleDetails() {
-            var details = document.getElementById("details");
-            if (details.classList.contains("show")) {
-              details.classList.remove("show");
-            } else {
-              details.classList.add("show");
-            }
-          }
-        </script>
       </body>
       </html>
     `;
