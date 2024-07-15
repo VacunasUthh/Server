@@ -36,4 +36,8 @@ export class EmailsController {
     }
   }
 
+  @Post('sendNotification')
+  async sendNotification(@Body('campaignId') campaignId: string) {
+    return this.emailsService.sendNotificationCampaing(campaignId);
+  }
 }
