@@ -333,7 +333,7 @@ export class EmailsService {
 
     return html;
   }
-  async sendNotificationCampaing(campaignId: string) {
+  async sendNotificationCampaign(campaignId: string) {
     const campaign = await this.CampaignsModel.findById(campaignId).lean().exec();
     if (!campaign) {
       throw new NotFoundException('Campaña no encontrada');
@@ -351,7 +351,19 @@ export class EmailsService {
         from: `"Sistema de vacunas" <${this.email}>`,
         to: user.email,
         subject: `Notificación de campaña: ${campaign.name}`,
-        html: `<p>${campaign.description}</p>`,
+        html: this.buildCampaignNotificationHtml(campaign),
+        attachments: [
+          {
+            filename: 'campaignHeader.jpg',
+            path: campaign.images[0], // Assuming the first image is the header
+            cid: 'campaignHeader'
+          },
+          {
+            filename: 'campaignFooter.jpg',
+            path: 'https://res.cloudinary.com/dwxlvv6lq/image/upload/v1718476928/n754w8dlsqmnaokwnylf.png',
+            cid: 'campaignFooter'
+          }
+        ]
       };
 
       try {
@@ -361,6 +373,139 @@ export class EmailsService {
         console.error('Error al enviar correo:', error);
       }
     }
+  }
+
+  private buildCampaignNotificationHtml(campaign: any): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .header {
+            text-align: center;
+            background-color: #007BFF;
+            padding: 20px;
+          }
+          .header img {
+            width: 80%;
+            height: auto;
+          }
+          .content {
+            padding: 20px;
+          }
+          .footer {
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+          }
+          .footer img {
+            width: 80%;
+            height: auto;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+          .btn {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin: 4px 2px;
+            cursor: pointer;
+          }
+          .btn:hover {
+            background-color: #0056b3;
+          }
+          .details {
+            display: none;
+            margin-top: 20px;
+          }
+          .details.show {
+            display: block;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="cid:campaignHeader" alt="Header Image">
+        </div>
+        <div class="content">
+          <h1>${campaign.name}</h1>
+          <p>${campaign.description}</p>
+          <button class="btn" onclick="toggleDetails()">Ver detalles</button>
+          <div id="details" class="details">
+            <table>
+              <tr>
+                <th>Fecha de inicio</th>
+                <td>${new Date(campaign.startdate[0]).toLocaleDateString('es-ES')}</td>
+              </tr>
+              <tr>
+                <th>Fecha de finalización</th>
+                <td>${new Date(campaign.finaldate[0]).toLocaleDateString('es-ES')}</td>
+              </tr>
+              <tr>
+                <th>Horario</th>
+                <td>${campaign.hour[0]}</td>
+              </tr>
+              <tr>
+                <th>Estado</th>
+                <td>${campaign.state[0]}</td>
+              </tr>
+              <tr>
+                <th>Ciudad</th>
+                <td>${campaign.city[0]}</td>
+              </tr>
+              <tr>
+                <th>Colonia</th>
+                <td>${campaign.colony[0]}</td>
+              </tr>
+              <tr>
+                <th>Vacunas</th>
+                <td>${campaign.vaccines.join(', ')}</td>
+              </tr>
+              <tr>
+                <th>Efectos secundarios</th>
+                <td>${campaign.sideeffects.join(', ')}</td>
+              </tr>
+              <tr>
+                <th>Edad</th>
+                <td>${campaign.age.join(', ')}</td>
+              </tr>
+              <tr>
+                <th>Enfermera asignada</th>
+                <td>${campaign.assignednurse.join(', ')}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="footer">
+          <img src="cid:campaignFooter" alt="Footer Image">
+        </div>
+        <script>
+          function toggleDetails() {
+            var details = document.getElementById("details");
+            if (details.classList.contains("show")) {
+              details.classList.remove("show");
+            } else {
+              details.classList.add("show");
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `;
   }
 
 
