@@ -233,6 +233,7 @@ export class ParentsService {
             return {
               vaccineId: vaccineId.toString(),
               vaccineName: vaccine.name,
+              disease: vaccine.disease,
               expectedVaccineDate,
               delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate),
               description: vaccine.description,
@@ -248,6 +249,7 @@ export class ParentsService {
             return {
               vaccineId: vaccineId.toString(),
               vaccineName: vaccine.name,
+              disease: vaccine.disease,
               expectedVaccineDate,
               description: vaccine.description,
               dose: vaccine.dose,
