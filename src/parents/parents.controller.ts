@@ -42,4 +42,10 @@ export class ParentsController {
     const vaccineData = await this.parentsService.getVaccinationData(childId);
     return vaccineData;
   }
+
+  @Get('cartilla/:childId')
+  async getChildCartilla(@Param('childId') childId: string) {
+    const vaccineData = await this.parentsService.getVaccinationDataDetails(childId);
+    return vaccineData;
+  }
 }

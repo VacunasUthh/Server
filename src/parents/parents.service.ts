@@ -196,6 +196,81 @@ export class ParentsService {
     };
   }
 
+  public async getVaccinationDataDetails(childId: string) {
+    const child = await this.childrenModel.findById(childId).exec();
+    if (!child) {
+      throw new NotFoundException('Child not found.');
+    }
+  
+    const parent = await this.userModel.findById(child.parentId).exec();
+    if (!parent) {
+      throw new NotFoundException('Parent not found.');
+    }
+  
+    const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
+    const notifications = [];
+    const upcomingVaccinations = [];
+  
+    const birthDate = this.parseDateOfBirth(child.dateOfBirth);
+    const childVaccines = child.vaccines || [];
+  
+    const allVaccines = await this.vaccineModel.find().lean().exec();
+    const vaccineMap = allVaccines.reduce((acc, vaccine) => {
+      acc[vaccine._id.toString()] = vaccine;
+      return acc;
+    }, {} as { [key: string]: Vaccine });
+  
+    for (const vaccineMonth of vaccineMonths) {
+      const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
+      const currentDate = new Date();
+  
+      const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId.toString()));
+  
+      if (missingVaccines.length > 0) {
+        if (currentDate > expectedVaccineDate) {
+          notifications.push(...missingVaccines.map(vaccineId => {
+            const vaccine = vaccineMap[vaccineId.toString()];
+            return {
+              vaccineId: vaccineId.toString(),
+              vaccineName: vaccine.name,
+              expectedVaccineDate,
+              delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate),
+              description: vaccine.description,
+              application: vaccine.application,
+              contraindications: vaccine.contraindications,
+              area: vaccine.area,
+              gravity: vaccine.gravity
+            };
+          }));
+        } else {
+          upcomingVaccinations.push(...missingVaccines.map(vaccineId => {
+            const vaccine = vaccineMap[vaccineId.toString()];
+            return {
+              vaccineId: vaccineId.toString(),
+              vaccineName: vaccine.name,
+              expectedVaccineDate,
+              description: vaccine.description,
+              dose: vaccine.dose,
+              application: vaccine.application,
+              contraindications: vaccine.contraindications,
+              area: vaccine.area,
+              gravity: vaccine.gravity
+            };
+          }));
+        }
+      }
+    }
+  
+    return {
+      childName: `${child.name} ${child.lastName}`,
+      childBirthDate: child.dateOfBirth,
+      parentName: `${parent.name} ${parent.lastName}`,
+      notifications,
+      upcomingVaccinations
+    };
+  }
+  
+
   
 }
 
