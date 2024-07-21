@@ -4,20 +4,30 @@ import { Model } from 'mongoose';
 import { Vaccine } from '../schemas/vaccine.schema';
 import { CreateVaccineDto } from '../dto/vaccines/create.vaccine.dto';
 import { UpdateVaccineDto } from '../dto/vaccines/update.vaccine.dto';
+import { VaccineMonth, VaccineMonthSchema, } from '../schemas/vaccineMonth.schema';
 
 @Injectable()
 export class VaccinesService {
         constructor(
                 @InjectModel(Vaccine.name) private vaccineModel: Model<Vaccine>,
-        ) {}
+                @InjectModel(VaccineMonth.name) private vaccineMonthModel: Model<VaccineMonth>,
+        ) { }
 
         async findAll() {
                 return this.vaccineModel.find();
         }
 
-        async create(createVaccine: CreateVaccineDto) {
-                const createdTask = new this.vaccineModel(createVaccine);
-                return createdTask.save();
+        async create(createVaccineDto: CreateVaccineDto): Promise<Vaccine> {
+                const createdVaccine = new this.vaccineModel(createVaccineDto);
+                const savedVaccine = await createdVaccine.save();
+
+                return savedVaccine;
+        }
+
+        async addVaccineToMonth(vaccineId: string, monthId: string): Promise<VaccineMonth> {
+                return this.vaccineMonthModel.findByIdAndUpdate(monthId, {
+                        $push: { vaccines: vaccineId },
+                }, { new: true });
         }
 
         async update(id: string, updateVaccine: UpdateVaccineDto) {
