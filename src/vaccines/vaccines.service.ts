@@ -24,10 +24,14 @@ export class VaccinesService {
                 return savedVaccine;
         }
 
-        async addVaccineToMonth(vaccineId: string, monthId: string): Promise<VaccineMonth> {
-                return this.vaccineMonthModel.findByIdAndUpdate(monthId, {
-                        $push: { vaccines: vaccineId },
-                }, { new: true });
+        async addVaccineToMonths(vaccineId: string, monthIds: string[]): Promise<VaccineMonth[]> {
+                const promises = monthIds.map(monthId =>
+                        this.vaccineMonthModel.findByIdAndUpdate(monthId, {
+                                $push: { vaccines: vaccineId },
+                        }, { new: true })
+                );
+
+                return Promise.all(promises);
         }
 
         async update(id: string, updateVaccine: UpdateVaccineDto) {

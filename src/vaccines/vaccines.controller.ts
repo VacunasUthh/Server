@@ -24,12 +24,12 @@ export class VaccinesController {
                 return this.vaccineService.create(createVaccineDto);
         }
 
-        @Put('/month/:monthId')
-        async addVaccineToMonth(
-                @Param('monthId') monthId: string,
+        @Put('/months')
+        async addVaccineToMonths(
                 @Body('vaccineId') vaccineId: string,
-        ): Promise<VaccineMonth> {
-                return this.vaccineService.addVaccineToMonth(vaccineId, monthId);
+                @Body('monthIds') monthIds: string[],
+        ): Promise<VaccineMonth[]> {
+                return this.vaccineService.addVaccineToMonths(vaccineId, monthIds);
         }
 
         @Put(':id')
