@@ -238,12 +238,12 @@ export class ParentsService {
           vaccineName: vaccine.name,
           disease: vaccine.disease,
           applicationDate: expectedVaccineDate,
-          month: vaccineMonth.month, // Incluimos el mes de vacunación
           description: vaccine.description,
           application: vaccine.application,
           contraindications: vaccine.contraindications,
           area: vaccine.area,
-          gravity: vaccine.gravity
+          gravity: vaccine.gravity,
+          month: vaccineMonth.month
         });
       }
 
@@ -261,7 +261,8 @@ export class ParentsService {
               application: vaccine.application,
               contraindications: vaccine.contraindications,
               area: vaccine.area,
-              gravity: vaccine.gravity
+              gravity: vaccine.gravity,
+              month: vaccineMonth.month,
             };
           }));
         } else {
@@ -276,7 +277,8 @@ export class ParentsService {
               dose: vaccine.dose,
               contraindications: vaccine.contraindications,
               area: vaccine.area,
-              gravity: vaccine.gravity
+              gravity: vaccine.gravity,
+              month: vaccineMonth.month,
             };
           }));
         }
