@@ -201,31 +201,51 @@ export class ParentsService {
     if (!child) {
       throw new NotFoundException('Child not found.');
     }
-  
+
     const parent = await this.userModel.findById(child.parentId).exec();
     if (!parent) {
       throw new NotFoundException('Parent not found.');
     }
-  
+
     const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
     const notifications = [];
     const upcomingVaccinations = [];
-  
+    const appliedVaccinations = [];
+
     const birthDate = this.parseDateOfBirth(child.dateOfBirth);
-    const childVaccines = child.vaccines || [];
-  
+    const appliedVaccines = child.appliedVaccines || [];
+
     const allVaccines = await this.vaccineModel.find().lean().exec();
     const vaccineMap = allVaccines.reduce((acc, vaccine) => {
       acc[vaccine._id.toString()] = vaccine;
       return acc;
     }, {} as { [key: string]: Vaccine });
-  
+
     for (const vaccineMonth of vaccineMonths) {
       const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
       const currentDate = new Date();
-  
-      const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId.toString()));
-  
+
+      const missingVaccines = vaccineMonth.vaccines.filter(vaccineId =>
+        !appliedVaccines.some(applied => applied.vaccineId === vaccineId.toString() && applied.month === vaccineMonth.month)
+      );
+
+      const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
+
+      for (const applied of appliedInMonth) {
+        const vaccine = vaccineMap[applied.vaccineId];
+        appliedVaccinations.push({
+          vaccineId: applied.vaccineId,
+          vaccineName: vaccine.name,
+          disease: vaccine.disease,
+          applicationDate: expectedVaccineDate,
+          description: vaccine.description,
+          application: vaccine.application,
+          contraindications: vaccine.contraindications,
+          area: vaccine.area,
+          gravity: vaccine.gravity
+        });
+      }
+
       if (missingVaccines.length > 0) {
         if (currentDate > expectedVaccineDate) {
           notifications.push(...missingVaccines.map(vaccineId => {
@@ -262,18 +282,20 @@ export class ParentsService {
         }
       }
     }
-  
+
     return {
       childName: `${child.name} ${child.lastName}`,
       childBirthDate: child.dateOfBirth,
       parentName: `${parent.name} ${parent.lastName}`,
       notifications,
-      upcomingVaccinations
+      upcomingVaccinations,
+      appliedVaccinations
     };
   }
-  
 
-  
+
+
+
 }
 
 
