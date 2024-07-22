@@ -48,4 +48,9 @@ export class ParentsController {
     const vaccineData = await this.parentsService.getVaccinationDataDetails(childId);
     return vaccineData;
   }
+
+  @Post('apply-vaccine')
+  async applyVaccine(@Body() applyVaccineDto: { childId: string; month: number; vaccineId: string }) {
+    return this.parentsService.applyVaccine(applyVaccineDto.childId, applyVaccineDto.month, applyVaccineDto.vaccineId);
+  }
 }

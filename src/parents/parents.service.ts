@@ -238,6 +238,7 @@ export class ParentsService {
           vaccineName: vaccine.name,
           disease: vaccine.disease,
           applicationDate: expectedVaccineDate,
+          month: vaccineMonth.month, // Incluimos el mes de vacunación
           description: vaccine.description,
           application: vaccine.application,
           contraindications: vaccine.contraindications,
@@ -273,7 +274,6 @@ export class ParentsService {
               expectedVaccineDate,
               description: vaccine.description,
               dose: vaccine.dose,
-              application: vaccine.application,
               contraindications: vaccine.contraindications,
               area: vaccine.area,
               gravity: vaccine.gravity
@@ -293,6 +293,31 @@ export class ParentsService {
     };
   }
 
+
+  public async applyVaccine(childId: string, month: number, vaccineId: string) {
+    const child = await this.childrenModel.findById(childId).exec();
+    if (!child) {
+      throw new NotFoundException('Child not found.');
+    }
+
+    const alreadyApplied = child.appliedVaccines?.some(
+      (applied) => applied.vaccineId === vaccineId && applied.month === month
+    );
+
+    if (alreadyApplied) {
+      throw new Error('Vaccine already applied for this month.');
+    }
+
+    const newAppliedVaccine = { month, vaccineId };
+    if (!child.appliedVaccines) {
+      child.appliedVaccines = [];
+    }
+    child.appliedVaccines.push(newAppliedVaccine);
+
+    await child.save();
+
+    return { message: 'Vaccine applied successfully.' };
+  }
 
 
 
