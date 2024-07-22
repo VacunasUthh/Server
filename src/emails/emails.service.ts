@@ -110,16 +110,19 @@ export class EmailsService {
     const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
     const notifications = {};
     const upcomingVaccinations = {};
+    const appliedVaccinations = {};
 
     for (const child of children) {
       const birthDate = this.parseDateOfBirth(child.dateOfBirth);
-      const childVaccines = child.vaccines || [];
+      // Asegúrate de que childVaccines sea un array
+      const childVaccinesArray = Array.isArray(child.vaccines) ? child.vaccines : [child.vaccines];
 
       for (const vaccineMonth of vaccineMonths) {
         const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
         const currentDate = new Date();
 
-        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccines.includes(vaccineId));
+        const missingVaccines = vaccineMonth.vaccines.filter(vaccineId => !childVaccinesArray.includes(vaccineId));
+        const appliedVaccinesForMonth = childVaccinesArray.filter(vaccineId => vaccineMonth.vaccines.includes(vaccineId));
 
         if (missingVaccines.length > 0) {
           if (currentDate > expectedVaccineDate) {
@@ -141,6 +144,16 @@ export class EmailsService {
             })));
           }
         }
+
+        if (appliedVaccinesForMonth.length > 0) {
+          if (!appliedVaccinations[child.name]) {
+            appliedVaccinations[child.name] = [];
+          }
+          appliedVaccinations[child.name].push(...appliedVaccinesForMonth.map(vaccineId => ({
+            vaccineId,
+            applicationDate: new Date() // Aquí puedes ajustar la fecha de aplicación si es necesario
+          })));
+        }
       }
     }
 
@@ -152,7 +165,11 @@ export class EmailsService {
       upcomingVaccinations[childName] = [...new Set(upcomingVaccinations[childName])];
     }
 
-    if (Object.keys(notifications).length === 0 && Object.keys(upcomingVaccinations).length === 0) {
+    for (const childName in appliedVaccinations) {
+      appliedVaccinations[childName] = [...new Set(appliedVaccinations[childName])];
+    }
+
+    if (Object.keys(notifications).length === 0 && Object.keys(upcomingVaccinations).length === 0 && Object.keys(appliedVaccinations).length === 0) {
       console.log('No hay vacunas faltantes para notificar.');
       return { success: false, message: 'No hay vacunas faltantes para notificar.' };
     }
@@ -160,8 +177,8 @@ export class EmailsService {
     const mailOptions = {
       from: `"Sistema de vacunas" <${this.email}>`,
       to: parentEmail,
-      subject: 'Notificación de vacunas faltantes y próximas',
-      html: await this.buildNotificationHtml(notifications, upcomingVaccinations, observation),
+      subject: 'Notificación de vacunas',
+      html: await this.buildNotificationHtml(notifications, upcomingVaccinations, appliedVaccinations, observation),
       attachments: [
         {
           filename: 'header.jpg',
@@ -204,7 +221,7 @@ export class EmailsService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  private async buildNotificationHtml(notifications: any, upcomingVaccinations: any, observation: string): Promise<string> {
+  private async buildNotificationHtml(notifications: any, upcomingVaccinations: any, appliedVaccinations: any, observation: string): Promise<string> {
     let html = `
       <!DOCTYPE html>
       <html>
@@ -251,12 +268,12 @@ export class EmailsService {
           <img src="cid:headerImage" alt="Header Image">
         </div>
         <div class="content">
-          <h1>Notificación de vacunas faltantes y próximas</h1>
+          <h1>Notificación de vacunas</h1>
     `;
 
     for (const childName in notifications) {
       html += `
-          <h2>Hijo: ${childName}</h2>
+          <h2>Hijo: ${childName} (Vacunas Atrasadas)</h2>
           <table>
             <tr>
               <th>Vacuna</th>
@@ -315,6 +332,36 @@ export class EmailsService {
       }
     }
 
+    if (Object.keys(appliedVaccinations).length > 0) {
+      for (const childName in appliedVaccinations) {
+        html += `
+              <h2>Hijo: ${childName} (Vacunas Aplicadas)</h2>
+              <table>
+                <tr>
+                  <th>Vacuna</th>
+                  <th>Fecha de aplicación</th>
+                </tr>
+            `;
+
+        for (const vaccination of appliedVaccinations[childName]) {
+          const vaccineId = vaccination.vaccineId;
+          const applicationDate = vaccination.applicationDate.toLocaleDateString('es-ES');
+
+          const vaccine = await this.vaccineModel.findById(vaccineId).lean().exec();
+          const vaccineName = vaccine ? vaccine.name : 'Vacuna Desconocida';
+
+          html += `
+                  <tr>
+                    <td>${vaccineName}</td>
+                    <td>${applicationDate}</td>
+                  </tr>
+                `;
+        }
+
+        html += `</table>`;
+      }
+    }
+
     if (observation) {
       html += `
             <h3>Observación:</h3>
@@ -333,6 +380,7 @@ export class EmailsService {
 
     return html;
   }
+  
   async sendNotificationCampaign(campaignId: string) {
     const campaign = await this.CampaignsModel.findById(campaignId).lean().exec();
     if (!campaign) {
