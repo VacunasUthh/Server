@@ -343,7 +343,7 @@ export class ParentsService {
 
     return { message: 'Vaccine applied successfully.' };
   }
-  /*
+  
   public async confirmationVaccine(childId: string, month: number, vaccineId: string) {
     const child = await this.childrenModel.findById(childId).exec();
     if (!child) {
@@ -369,7 +369,6 @@ export class ParentsService {
     return { message: 'Vaccine confirmed successfully.' };
   }
 
- */
 
 }
 
