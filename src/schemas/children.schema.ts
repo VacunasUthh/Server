@@ -91,6 +91,13 @@ export class Children extends Document {
         default: [],
     })
     appliedVaccines: { month: number, vaccineId: string }[];
+
+    @Prop({
+        type: [{ month: Number, vaccineId: String }],
+        default: [],
+    })
+    confirmationVaccines: { month: number, vaccineId: string }[];
+    
 }
 
 export const ChildrenSchema = SchemaFactory.createForClass(Children);
