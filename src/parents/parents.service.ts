@@ -210,7 +210,9 @@ export class ParentsService {
     const vaccineMonths = await this.vaccineMonthModel.find({ 'vaccines.0': { $exists: true } }).lean().exec();
     const notifications = [];
     const upcomingVaccinations = [];
-    const appliedVaccinations = [];
+
+    //const appliedVaccinations = [];
+
   
     const birthDate = this.parseDateOfBirth(child.dateOfBirth);
     const appliedVaccines = child.appliedVaccines || [];
@@ -230,7 +232,7 @@ export class ParentsService {
       );
   
       const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
-  
+      /*
       for (const applied of appliedInMonth) {
         const vaccine = vaccineMap[applied.vaccineId];
         appliedVaccinations.push({
@@ -246,7 +248,7 @@ export class ParentsService {
           month: vaccineMonth.month
         });
       }
-  
+      */
       if (missingVaccines.length > 0) {
         if (currentDate > expectedVaccineDate) {
           notifications.push(...missingVaccines.map(vaccineId => {
@@ -291,7 +293,7 @@ export class ParentsService {
       parentName: `${parent.name} ${parent.lastName}`,
       notifications,
       upcomingVaccinations,
-      appliedVaccinations
+      //appliedVaccinations
     };
   }
   
