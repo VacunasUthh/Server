@@ -53,9 +53,10 @@ export class ParentsController {
   async applyVaccine(@Body() applyVaccineDto: { childId: string; month: number; vaccineId: string }) {
     return this.parentsService.applyVaccine(applyVaccineDto.childId, applyVaccineDto.month, applyVaccineDto.vaccineId);
   }
-
+  /*
   @Post('confirm-vaccine')
   async confirmedVaccine(@Body() confirmedVaccineDto: { childId: string; month: number; vaccineId: string }) {
     return this.parentsService.confirmationVaccine(confirmedVaccineDto.childId, confirmedVaccineDto.month, confirmedVaccineDto.vaccineId);
   }
+  */
 }
