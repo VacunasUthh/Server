@@ -197,111 +197,125 @@ export class ParentsService {
   }
 
   public async getVaccinationDataDetails(childId: string) {
-    const child = await this.childrenModel.findById(childId).exec();
-    if (!child) {
-      throw new NotFoundException('Child not found.');
-    }
+    try {
+      const child = await this.childrenModel.findById(childId).exec();
+      if (!child) {
+        throw new NotFoundException('Child not found.');
+      }
   
-    const parent = await this.userModel.findById(child.parentId).exec();
-    if (!parent) {
-      throw new NotFoundException('Parent not found.');
-    }
+      const parent = await this.userModel.findById(child.parentId).exec();
+      if (!parent) {
+        throw new NotFoundException('Parent not found.');
+      }
   
-    const vaccineMonths = await this.vaccineMonthModel.find({ 'vaccines.0': { $exists: true } }).lean().exec();
-    const notifications = [];
-    const upcomingVaccinations = [];
-    const appliedVaccinations = [];
+      const vaccineMonths = await this.vaccineMonthModel.find({ 'vaccines.0': { $exists: true } }).lean().exec();
+      const notifications = [];
+      const upcomingVaccinations = [];
+      const appliedVaccinations = [];
   
-    const birthDate = this.parseDateOfBirth(child.dateOfBirth);
-    const appliedVaccines = child.appliedVaccines || [];
+      const birthDate = this.parseDateOfBirth(child.dateOfBirth);
+      const appliedVaccines = child.appliedVaccines || [];
   
-    if (!Array.isArray(appliedVaccines)) {
-      throw new Error('Invalid appliedVaccines format');
-    }
+      if (!Array.isArray(appliedVaccines)) {
+        throw new Error('Invalid appliedVaccines format');
+      }
   
-    const allVaccines = await this.vaccineModel.find().lean().exec();
-    const vaccineMap = allVaccines.reduce((acc, vaccine) => {
-      acc[vaccine._id.toString()] = vaccine;
-      return acc;
-    }, {} as { [key: string]: Vaccine });
+      const allVaccines = await this.vaccineModel.find().lean().exec();
+      const vaccineMap = allVaccines.reduce((acc, vaccine) => {
+        acc[vaccine._id.toString()] = vaccine;
+        return acc;
+      }, {} as { [key: string]: Vaccine });
   
-    for (const vaccineMonth of vaccineMonths) {
-      const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
-      const currentDate = new Date();
+      for (const vaccineMonth of vaccineMonths) {
+        try {
+          const expectedVaccineDate = this.calculateExpectedVaccineDate(birthDate, vaccineMonth.month);
+          const currentDate = new Date();
   
-      const missingVaccines = vaccineMonth.vaccines.filter(vaccineId =>
-        !appliedVaccines.some(applied => applied.vaccineId === vaccineId.toString() && applied.month === vaccineMonth.month)
-      );
+          const missingVaccines = vaccineMonth.vaccines.filter(vaccineId =>
+            !appliedVaccines.some(applied => applied.vaccineId === vaccineId.toString() && applied.month === vaccineMonth.month)
+          );
   
-      const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
+          const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
   
-      for (const applied of appliedInMonth) {
-        const vaccine = vaccineMap[applied.vaccineId];
-        if (vaccine) {
-          appliedVaccinations.push({
-            vaccineId: applied.vaccineId,
-            vaccineName: vaccine.name,
-            disease: vaccine.disease,
-            applicationDate: expectedVaccineDate,
-            description: vaccine.description,
-            application: vaccine.application,
-            contraindications: vaccine.contraindications,
-            area: vaccine.area,
-            gravity: vaccine.gravity,
-            month: vaccineMonth.month
-          });
-        } else {
-          console.warn(`Vaccine with ID ${applied.vaccineId} not found in vaccineMap`);
+          for (const applied of appliedInMonth) {
+            try {
+              const vaccine = vaccineMap[applied.vaccineId];
+              if (vaccine) {
+                appliedVaccinations.push({
+                  vaccineId: applied.vaccineId,
+                  vaccineName: vaccine.name,
+                  disease: vaccine.disease,
+                  applicationDate: expectedVaccineDate,
+                  description: vaccine.description,
+                  application: vaccine.application,
+                  contraindications: vaccine.contraindications,
+                  area: vaccine.area,
+                  gravity: vaccine.gravity,
+                  month: vaccineMonth.month
+                });
+              } else {
+                console.warn(`Vaccine with ID ${applied.vaccineId} not found in vaccineMap`);
+              }
+            } catch (error) {
+              console.error(`Error processing applied vaccine with ID ${applied.vaccineId}:`, error);
+            }
+          }
+  
+          if (missingVaccines.length > 0) {
+            if (currentDate > expectedVaccineDate) {
+              notifications.push(...missingVaccines.map(vaccineId => {
+                const vaccine = vaccineMap[vaccineId.toString()];
+                return {
+                  vaccineId: vaccineId.toString(),
+                  vaccineName: vaccine.name,
+                  disease: vaccine.disease,
+                  expectedVaccineDate,
+                  delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate),
+                  description: vaccine.description,
+                  application: vaccine.application,
+                  contraindications: vaccine.contraindications,
+                  area: vaccine.area,
+                  gravity: vaccine.gravity,
+                  month: vaccineMonth.month,
+                };
+              }));
+            } else {
+              upcomingVaccinations.push(...missingVaccines.map(vaccineId => {
+                const vaccine = vaccineMap[vaccineId.toString()];
+                return {
+                  vaccineId: vaccineId.toString(),
+                  vaccineName: vaccine.name,
+                  disease: vaccine.disease,
+                  expectedVaccineDate,
+                  description: vaccine.description,
+                  dose: vaccine.dose,
+                  contraindications: vaccine.contraindications,
+                  area: vaccine.area,
+                  gravity: vaccine.gravity,
+                  month: vaccineMonth.month,
+                };
+              }));
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing vaccineMonth for month ${vaccineMonth.month}:`, error);
         }
       }
   
-      if (missingVaccines.length > 0) {
-        if (currentDate > expectedVaccineDate) {
-          notifications.push(...missingVaccines.map(vaccineId => {
-            const vaccine = vaccineMap[vaccineId.toString()];
-            return {
-              vaccineId: vaccineId.toString(),
-              vaccineName: vaccine.name,
-              disease: vaccine.disease,
-              expectedVaccineDate,
-              delayDays: this.calculateDaysDifference(expectedVaccineDate, currentDate),
-              description: vaccine.description,
-              application: vaccine.application,
-              contraindications: vaccine.contraindications,
-              area: vaccine.area,
-              gravity: vaccine.gravity,
-              month: vaccineMonth.month,
-            };
-          }));
-        } else {
-          upcomingVaccinations.push(...missingVaccines.map(vaccineId => {
-            const vaccine = vaccineMap[vaccineId.toString()];
-            return {
-              vaccineId: vaccineId.toString(),
-              vaccineName: vaccine.name,
-              disease: vaccine.disease,
-              expectedVaccineDate,
-              description: vaccine.description,
-              dose: vaccine.dose,
-              contraindications: vaccine.contraindications,
-              area: vaccine.area,
-              gravity: vaccine.gravity,
-              month: vaccineMonth.month,
-            };
-          }));
-        }
-      }
+      return {
+        childName: `${child.name} ${child.lastName}`,
+        childBirthDate: child.dateOfBirth,
+        parentName: `${parent.name} ${parent.lastName}`,
+        notifications,
+        upcomingVaccinations,
+        appliedVaccinations
+      };
+    } catch (error) {
+      console.error('Error in getVaccinationDataDetails function:', error);
+      throw error; // Re-throw the error after logging
     }
-  
-    return {
-      childName: `${child.name} ${child.lastName}`,
-      childBirthDate: child.dateOfBirth,
-      parentName: `${parent.name} ${parent.lastName}`,
-      notifications,
-      upcomingVaccinations,
-      appliedVaccinations
-    };
   }
+  
   
   
 
