@@ -208,7 +208,7 @@ export class ParentsService {
         throw new NotFoundException('Parent not found.');
       }
   
-      const vaccineMonths = await this.vaccineMonthModel.find({ 'vaccines.0': { $exists: true } }).lean().exec();
+      const vaccineMonths = await this.vaccineMonthModel.find().lean().exec();
       const notifications = [];
       const upcomingVaccinations = [];
       const appliedVaccinations = [];
