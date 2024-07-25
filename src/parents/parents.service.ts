@@ -312,7 +312,6 @@ export class ParentsService {
       notifications,
       upcomingVaccinations,
       appliedVaccinations,
-      confirmedVaccinations
     };
   }
 
