@@ -211,11 +211,9 @@ export class ParentsService {
     const notifications = [];
     const upcomingVaccinations = [];
     const appliedVaccinations = [];
-    const confirmedVaccinations = [];
   
     const birthDate = this.parseDateOfBirth(child.dateOfBirth);
     const appliedVaccines = child.appliedVaccines || [];
-    const confirmationVaccines = child.confirmationVaccines || [];
   
     const allVaccines = await this.vaccineModel.find().lean().exec();
     const vaccineMap = allVaccines.reduce((acc, vaccine) => {
@@ -229,11 +227,9 @@ export class ParentsService {
   
       const missingVaccines = vaccineMonth.vaccines.filter(vaccineId =>
         !appliedVaccines.some(applied => applied.vaccineId === vaccineId.toString() && applied.month === vaccineMonth.month)
-        && !confirmationVaccines.some(confirmed => confirmed.vaccineId === vaccineId.toString() && confirmed.month === vaccineMonth.month)
       );
   
       const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
-      const confirmedInMonth = confirmationVaccines.filter(confirmed => confirmed.month === vaccineMonth.month);
   
       for (const applied of appliedInMonth) {
         const vaccine = vaccineMap[applied.vaccineId];
@@ -251,21 +247,6 @@ export class ParentsService {
         });
       }
   
-      for (const confirmed of confirmedInMonth) {
-        const vaccine = vaccineMap[confirmed.vaccineId];
-        confirmedVaccinations.push({
-          vaccineId: confirmed.vaccineId,
-          vaccineName: vaccine.name,
-          disease: vaccine.disease,
-          confirmationDate: expectedVaccineDate,
-          description: vaccine.description,
-          application: vaccine.application,
-          contraindications: vaccine.contraindications,
-          area: vaccine.area,
-          gravity: vaccine.gravity,
-          month: vaccineMonth.month
-        });
-      }
   
       if (missingVaccines.length > 0) {
         if (currentDate > expectedVaccineDate) {
