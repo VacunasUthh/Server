@@ -212,9 +212,11 @@ export class ParentsService {
       const notifications = [];
       const upcomingVaccinations = [];
       const appliedVaccinations = [];
+      const confirmedVaccinations = [];
   
       const birthDate = this.parseDateOfBirth(child.dateOfBirth);
       const appliedVaccines = child.appliedVaccines || [];
+      const confirmationVaccines = child.confirmationVaccines || [];
   
       if (!Array.isArray(appliedVaccines)) {
         throw new Error('Invalid appliedVaccines format');
@@ -236,6 +238,7 @@ export class ParentsService {
           );
   
           const appliedInMonth = appliedVaccines.filter(applied => applied.month === vaccineMonth.month);
+          const confirmedInMonth = confirmationVaccines.filter(confirmed => confirmed.month === vaccineMonth.month);
   
           for (const applied of appliedInMonth) {
             try {
@@ -258,6 +261,30 @@ export class ParentsService {
               }
             } catch (error) {
               console.error(`Error processing applied vaccine with ID ${applied.vaccineId}:`, error);
+            }
+          }
+  
+          for (const confirmed of confirmedInMonth) {
+            try {
+              const vaccine = vaccineMap[confirmed.vaccineId];
+              if (vaccine) {
+                confirmedVaccinations.push({
+                  vaccineId: confirmed.vaccineId,
+                  vaccineName: vaccine.name,
+                  disease: vaccine.disease,
+                  confirmationDate: expectedVaccineDate,
+                  description: vaccine.description,
+                  application: vaccine.application,
+                  contraindications: vaccine.contraindications,
+                  area: vaccine.area,
+                  gravity: vaccine.gravity,
+                  month: vaccineMonth.month
+                });
+              } else {
+                console.warn(`Vaccine with ID ${confirmed.vaccineId} not found in vaccineMap`);
+              }
+            } catch (error) {
+              console.error(`Error processing confirmed vaccine with ID ${confirmed.vaccineId}:`, error);
             }
           }
   
@@ -308,13 +335,15 @@ export class ParentsService {
         parentName: `${parent.name} ${parent.lastName}`,
         notifications,
         upcomingVaccinations,
-        appliedVaccinations
+        appliedVaccinations,
+        confirmedVaccinations
       };
     } catch (error) {
       console.error('Error in getVaccinationDataDetails function:', error);
-      throw error; // Re-throw the error after logging
+      throw error; 
     }
   }
+  
   
   
   
