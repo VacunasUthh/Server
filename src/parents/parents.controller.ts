@@ -59,4 +59,17 @@ export class ParentsController {
     return this.parentsService.confirmationVaccine(confirmedVaccineDto.childId, confirmedVaccineDto.month, confirmedVaccineDto.vaccineId);
   }
   
+
+  @Get('confirmed-vaccines/:childId')
+  async getConfirmedVaccines(@Param('childId') childId: string) {
+    try {
+      const confirmedVaccines = await this.parentsService.getConfirmedVaccines(childId);
+      return confirmedVaccines;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException('Child not found');
+      }
+      throw new InternalServerErrorException('Could not retrieve confirmed vaccines');
+    }
+  }
 }
