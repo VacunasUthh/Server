@@ -406,16 +406,7 @@ export class ParentsService {
         throw new NotFoundException('Child not found.');
       }
 
-      const confirmedVaccines = child.confirmationVaccines || [];
-      const vaccineDetails = await Promise.all(confirmedVaccines.map(async (vaccine) => {
-        const vaccineDetail = await this.vaccineModel.findById(vaccine.vaccineId).lean().exec();
-        return {
-          ...vaccineDetail,
-          month: vaccine.month,
-        };
-      }));
-
-      return vaccineDetails;
+      return child.confirmationVaccines || [];
     } catch (error) {
       console.error('Error getting confirmed vaccines:', error);
       throw new InternalServerErrorException('Could not retrieve confirmed vaccines');
